@@ -1,0 +1,120 @@
+<?php
+
+use Micro\Application\Utils;
+$this->extend('shared::layouts/admin/default');
+
+?>
+<div class="row">
+	<div class="col-md-12">
+		<h1 class="page-title txt-color-blueDark">
+			<i class="fa fa-table fa-fw "></i>
+			Cache
+		</h1>
+	</div>
+</div>
+<div class="row">
+	<div class="col-md-12">
+        <?php foreach ($this->tags as $tag => $files) : ?>
+        <div class="panel panel-default tag">
+    		<div class="panel-heading">
+    			<strong style="font-size: 1.5em"><?php echo $tag; ?></strong>
+			</div>
+			<div class="panel-body">
+				<table class="table table-hover">
+					<tr>
+						<th style="width: 10%"><?php echo translate('Изтекло'); ?></th>
+						<th><?php echo translate('Файл'); ?></th>
+						<th style="width: 5%"></th>
+					</tr>
+        		<?php foreach ($files as $file) : ?>
+        			<tr class="tag-file">
+        				<td>
+        				<?php
+        				$now = new DateTime();
+        				$date = new DateTime();
+        				$date->setTimestamp($file['meta']['expire']);
+        				$diff = $date->diff($now);
+        				if ($diff->invert) {
+        				    echo '<span class="countdown" data-time="' . $file['meta']['expire'] . '"></span>';
+        				} else {
+        				    echo '<span style="color: red">Expired</span>';
+        				}
+        				?>
+        				</td>
+        				<td>
+        					<a href="<?php echo route(null, ['action' => 'view-file', 'tag' => $tag, 'file' => Utils::base64urlEncode($file['fileContent'])]); ?>" data-handler="tag-file-view"><?php echo $file['fileContent']; ?></a>
+    					</td>
+    					<td>
+        					<a href="<?php echo route(null, ['action' => 'delete-tag-file', 'tag' => $tag, 'file' => Utils::base64urlEncode($file['file'])]); ?>" data-handler="tag-file-delete" style="color: red;"><?php echo translate('Изтриване'); ?></a>
+        				</td>
+    				</tr>
+        		<?php endforeach; ?>
+    			</table>
+    		</div>
+		</div>
+        <?php endforeach; ?>
+    </div>
+</div>
+<div id="myModal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-body" style="overflow: auto; max-height: 600px;"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+</div>
+<?php $this->start('scripts'); ?>
+<script src="templates/admin/js/jquery.countdown-2.0.4/jquery.countdown.min.js"></script>
+<script>
+$('.countdown').each(function () {
+	$(this).countdown(new Date(+$(this).attr('data-time') * 1000), function(event) {
+	    $(this).text(
+	    	      event.strftime('%D <?php echo translate('дни'); ?> %H:%M:%S')
+	    	    );
+	    	  });
+});
+$('[data-handler="tag-file-view"]').on('click', function () {
+	var url = $(this).attr('href');
+	$.post(url, {}, function (res) {
+		$('.modal-body').load(url, function() {
+            $('#myModal').modal('show');
+        });
+	});
+	return false;
+});
+$('[data-handler="tag-delete"]').on('click', function () {
+	var url = $(this).attr('href');
+	var containerTag = $(this).closest('.tag');
+	smart.confirm('Сигурни ли сте, че искате да изтриете всички файлове?', function (yes) {
+		if (yes) {
+        	$.post(url, {}, function (res) {
+				if (res.success) {
+					containerTag.remove();
+				}
+        	}, 'json');
+		}
+	});
+	return false;
+});
+$('[data-handler="tag-file-delete"]').on('click', function () {
+	var url = $(this).attr('href');
+	var containerTag = $(this).closest('.tag');
+	var containerFile = $(this).closest('.tag-file');
+	smart.confirm('Сигурни ли сте, че искате да изтриете файла?', function (yes) {
+		if (yes) {
+    		$.post(url, {}, function (res) {
+    			if (res.success) {
+    				containerFile.remove();
+    				if (!containerTag.find('.tag-file').length) {
+    					containerTag.remove();
+    				}
+    			}
+    		}, 'json');
+		}
+	});
+	return false;
+});
+</script>
+<?php $this->stop(); ?>

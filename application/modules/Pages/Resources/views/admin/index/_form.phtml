@@ -1,0 +1,150 @@
+<form class="form-horizontal" action="<?php echo route(); ?>" method="post" enctype="multipart/form-data">
+    <div class="row">
+    	<div class="col-md-9">
+        	<div class="row mb-3">
+        		<div class="col-md-6">
+                    <?php echo $this->form->alias->renderLabel(); ?>
+                    <?php echo $this->form->alias; ?>
+                    <input type="hidden" name="id" value="<?php echo $this->item['id']; ?>" />
+                </div>
+                <div class="col-md-3">
+                    <?php echo $this->form->type->renderLabel(); ?>
+                    <?php echo $this->form->type; ?>
+                </div>
+                <div class="col-md-3">
+                    <?php echo $this->form->categoryId->renderLabel(); ?>
+                    <?php echo $this->form->categoryId; ?>
+                </div>
+        	</div>
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <?php echo $this->form->name->renderLabel(); ?>
+                    <?php echo $this->form->name; ?>
+                </div>
+            </div>
+            <div class="row mb-3" style="display: none;">
+        		<div class="col-md-3">
+                    <?php echo $this->form->startDate->renderLabel(); ?>
+                    <?php echo $this->form->startDate; ?>
+                </div>
+                <div class="col-md-3">
+                    <?php echo $this->form->endDate->renderLabel(); ?>
+                    <?php echo $this->form->endDate; ?>
+                </div>
+                <div class="col-md-6">
+                    <?php echo $this->form->link->renderLabel(); ?>
+                    <?php echo $this->form->link; ?>
+                </div>
+        	</div>
+            <div class="row mb-3" style="display: none;">
+            	<div class="col-md-6">
+                    <?php
+                        echo $this->partial('admin::_file', [
+                            'form' => $this->form,
+                            'item' => $this->item,
+                            'type' => 'image'
+                        ]);
+                    ?>
+                </div>
+                <div class="col-md-6">
+                    <?php
+                        echo $this->partial('admin::_file', [
+                            'form' => $this->form,
+                            'item' => $this->item,
+                            'type' => 'file'
+                        ]);
+                    ?>
+                </div>
+            </div>
+			<div class="row mb-3">
+        		<div class="col-md-12">
+        			<?php echo $this->form->content->renderLabel(); ?>
+        			<div>
+        				<label class="nolang">
+        					<?php echo $this->form->contentIsEditor; ?>
+            				<strong><?php echo translate('HTML редактор'); ?></strong>
+        				</label>
+        			</div>
+        			<?php echo $this->form->content; ?>
+        		</div>
+        	</div>
+        	<div class="row mb-3">
+        		<div class="col-md-12">
+        			<?php echo $this->form->contentMobile->renderLabel(); ?>
+        			<div>
+        				<label class="nolang">
+                			<?php echo $this->form->contentMobileIsEditor; ?>
+                			<strong><?php echo translate('HTML редактор'); ?></strong>
+            			</label>
+        			</div>
+        			<?php echo $this->form->contentMobile; ?>
+        		</div>
+        	</div>
+        	<div class="row mb-3">
+        		<div class="col-md-12">
+        			<label class="checkbox-inline">
+        				<?php echo $this->form->active; ?>
+        				<?php echo $this->form->active->getLabel(); ?>
+        			</label>
+        		</div>
+        	</div>
+    	</div>
+    	<div class="col-md-3">
+    	    <div class="panel panel-default">
+    	    	<div class="panel-heading">
+    	    		<?php echo translate('Статуси'); ?>
+    	    	</div>
+                <div class="panel-body">
+        			<div class="row mb-3">
+        				<div class="col-md-12">
+        					<label class="checkbox-inline">
+            					<?php echo $this->form->active; ?>
+            					<?php echo $this->form->active->getLabel(); ?>
+        					</label>
+        				</div>
+        			</div>
+                	<div class="row mb-3" style="display: none;">
+                		<div class="col-md-12">
+                			<?php echo $this->form->layout->renderLabel(); ?>
+                			<?php echo $this->form->layout; ?>
+                		</div>
+                	</div>
+                	<div class="row mb-3" style="display: none;">
+                		<div class="col-md-12">
+                			<?php echo $this->form->viewScript->renderLabel(); ?>
+                			<?php echo $this->form->viewScript; ?>
+                		</div>
+                	</div>
+                	<div class="row mb-3" style="display: none;">
+                		<div class="col-md-12">
+                			<?php echo $this->form->css->renderLabel(); ?>
+                			<?php echo $this->form->css; ?>
+                		</div>
+                	</div>
+            	</div>
+        	</div>
+        </div>
+	</div>
+    <div>
+        <?php echo $this->form->btnSave; ?>
+        <?php echo $this->form->btnApply; ?>
+        <?php echo $this->form->btnBack; ?>
+        <?php echo $this->form->btnDeleteTranslation; ?>
+    </div>
+</form>
+<?php $this->start('scripts'); ?>
+<script>
+$('.toggleTinymce').on('click', function () {
+	var el = $("#" + $(this).data('content-id'));
+	if (el.is(':visible')) {
+		if ($.fn.tinymce) {
+			el.tinymce(tinymceConfig);
+		}
+	} else {
+		if ($.fn.tinymce) {
+			el.tinymce().remove();
+		}
+	}
+});
+</script>
+<?php $this->stop(); ?>

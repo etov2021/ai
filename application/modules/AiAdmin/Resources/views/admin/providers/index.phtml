@@ -1,0 +1,47 @@
+<?php
+
+$label = 'AI - Доставчици';
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label);
+
+?>
+<div class="row">
+	<div class="col-12">
+		<div class="card">
+			<div class="card-body">
+				<h2 class="mb-4"><i class="fa fa-plug fa-fw"></i> <?php echo escape($label); ?></h2>
+				<p>
+					<a class="btn btn-primary" href="<?php echo escape($this->addUrl); ?>">Добавяне</a>
+					<a class="btn btn-default" href="<?php echo escape($this->homeUrl); ?>">Назад</a>
+				</p>
+				<div class="table-responsive">
+					<table class="table table-striped">
+						<thead>
+							<tr><th>Код</th><th>Име</th><th>Тип</th><th>Адрес</th><th>Ключ</th><th>Активен</th><th></th></tr>
+						</thead>
+						<tbody>
+						<?php foreach ($this->rows as $row) : $p = $row['item']; ?>
+							<tr>
+								<td><?php echo escape($p->code); ?></td>
+								<td><?php echo escape($p->name); ?></td>
+								<td><?php echo escape($p->type); ?></td>
+								<td><?php echo escape($p->baseUrl ?? 'по подразбиране'); ?></td>
+								<td><?php echo $p->hasApiKey ? escape($p->apiKeyHint) : '<span class="text-muted">няма</span>'; ?></td>
+								<td><?php echo $p->active ? 'да' : 'не'; ?></td>
+								<td>
+									<a href="<?php echo escape($row['edit']); ?>">Редактиране</a> |
+									<a href="<?php echo escape($row['models']); ?>">Модели</a>
+								</td>
+							</tr>
+						<?php endforeach; ?>
+						<?php if (empty($this->rows)) : ?>
+							<tr><td colspan="7" class="text-muted">Няма доставчици.</td></tr>
+						<?php endif; ?>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>

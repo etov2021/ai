@@ -1,0 +1,43 @@
+<?php
+
+if (!function_exists('doOutputList')) {
+    function doOutputList($tree) {
+        $buff = '<ul style="margin: 0; padding: 0 0 0 15px;">';
+        foreach($tree as $k => $v) {
+            $buff .= '<li>';
+            $buff .= "<strong>" . $k . "</strong>: ";
+            if (is_array($v)) {
+                $buff .= doOutputList($v);
+            } else {
+                if (is_null($v)) {
+                    $buff .= 'NULL';
+                } else if (is_scalar($v)) {
+                    $buff .= strip_tags($v);
+                } else {
+                    $buff .= json_encode($v);
+                }
+            }
+            $buff .= '</li>';
+        }
+        $buff .= '</ul>';
+        return $buff;
+    }
+}
+
+$data = $this->content;
+
+if (is_array($data) && isset($data['before']) && isset($data['after'])) {
+    echo '<table class="table table-bordered">
+        <tr>
+            <th>' . translate('Преди') . '</th>
+            <th>' . translate('След') . '</th>
+        </tr>
+        <tr>
+            <td>' . doOutputList($data['before']) . '</td>
+            <td>' . doOutputList($data['after']) . '</td>
+        </tr>
+    </table>';
+} else {
+    //echo highlight_string("<?php " . var_export($data, true), true);
+    echo doOutputList($data);
+}

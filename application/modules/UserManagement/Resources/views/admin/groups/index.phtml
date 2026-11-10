@@ -1,0 +1,23 @@
+<?php
+
+$menu  = $this->helper('Navigation')->navigation('admin.main')->findAllBy('active', 1);
+$label = !empty($menu) ? end($menu)->getLabel() : '';
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label)
+     ;
+
+?>
+<div class="row">
+	<div class="col-md-12">
+		<div class="card">
+    		<div class="card-body">
+        		<h2 class="mb-4">
+        			<i class="mdi mdi-face-profile"></i>
+        			<?php echo $label; ?>
+        		</h2>
+        		<?php echo $this->grid; ?>
+        	</div>
+        </div>
+	</div>
+</div>

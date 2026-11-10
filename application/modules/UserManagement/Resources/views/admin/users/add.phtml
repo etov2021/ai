@@ -1,0 +1,129 @@
+<?php
+
+$label = translate($this->item->getId() ? 'Редактиране на потребител' : 'Добавяне на потребител');
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label)
+     ;
+
+$this->hookToMenu('admin.main', 'admin.users', $label);
+
+$this->section('styles', '<link href="templates/admin/js/jstree/themes/default/style.min.css" rel="stylesheet" type="text/css" />');
+$this->section('scripts', '<script src="templates/admin/js/jstree/jstree.min.js"></script>');
+
+?>
+<div class="row">
+	<div class="col-md-12">
+		<div class="card">
+    		<div class="card-body">
+        		<h2 class="mb-4">
+        			<i class="mdi mdi-face-profile"></i>
+        			<?php echo $label; ?>
+        		</h2>
+                <form class="form-horizontal" action="<?php echo route(); ?>" method="post" enctype="multipart/form-data">
+                <?php if ($this->form->domainId) : ?>
+                	<div class="row mb-3">
+                    	<div class="col-md-4">
+                            <?php echo $this->form->domainId->renderLabel(); ?>
+                            <?php echo $this->form->domainId; ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
+                    <div class="row mb-3">
+                    	<div class="col-md-4">
+                            <?php echo $this->form->groupId->renderLabel(); ?>
+                            <?php echo $this->form->groupId; ?>
+                        </div>
+                        <div class="col-md-4">
+                            <?php echo $this->form->username->renderLabel(); ?>
+                            <?php echo $this->form->username; ?>
+                            <input type="hidden" name="id" value="<?php echo $this->item->getId(); ?>" />
+                        </div>
+                        <div class="col-md-4">
+                            <?php echo $this->form->email->renderLabel(); ?>
+                            <?php echo $this->form->email; ?>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <?php echo $this->form->firstName->renderLabel(); ?>
+                            <?php echo $this->form->firstName; ?>
+                        </div>
+                        <div class="col-md-4">
+                            <?php echo $this->form->middleName->renderLabel(); ?>
+                            <?php echo $this->form->middleName; ?>
+                        </div>
+                        <div class="col-md-4">
+                            <?php echo $this->form->lastName->renderLabel(); ?>
+                            <?php echo $this->form->lastName; ?>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <?php echo $this->form->password->renderLabel(); ?>
+                            <?php echo $this->form->password; ?>
+                        </div>
+                        <div class="col-md-4">
+                            <?php echo $this->form->repassword->renderLabel(); ?>
+                            <?php echo $this->form->repassword; ?>
+                        </div>
+                    	<div class="col-md-4">
+                        <?php
+                            echo $this->partial('admin::_file', [
+                                'form' => $this->form,
+                                'item' => $this->item,
+                                'type' => 'image'
+                            ]);
+                        ?>
+                        </div>
+                    </div>
+        			<div class="row mb-3">
+        				<div class="col-md-12">
+        					<label class="checkbox-inline">
+            					<?php echo $this->form->active; ?>
+            					<?php echo $this->form->active->getLabel(); ?>
+        					</label>
+        				</div>
+        			</div>
+        			<div class="row mb-3">
+                        <div class="col-md-12">
+                            <?php echo $this->form->customRights->renderLabel(); ?>
+                            <?php echo $this->form->customRights; ?>
+                        </div>
+                    </div>
+        			<div class="row mb-3" style="margin-bottom: 0">
+                        <div class="col-md-12">
+                        	<label class="control-label"><?php echo translate('Индивидуални права'); ?></label>
+                            <div id="jstree"></div>
+                            <input type="hidden" name="rights" value="" />
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <?php echo $this->form->btnSave; ?>
+                        <?php echo $this->form->btnApply; ?>
+                        <?php echo $this->form->btnBack; ?>
+                    </div>
+                </form>
+        	</div>
+        </div>
+	</div>
+</div>
+<?php $this->start('scripts'); ?>
+<script>
+$(function () {
+	$('#jstree').jstree({
+		'plugins' : ['checkbox', 'wholerow'],
+		'checkbox' : {
+		    /*'keep_selected_style' : false*/
+	    },
+		'core' : {
+		    'data' : <?php echo json_encode(isset($this->tree) ? $this->tree : []); ?>,
+		    'expand_selected_onload' : false
+		}
+	});
+	$('input[name="btnSave"], input[name="btnApply"]').on('click', function () {
+		$('input[name="rights"]').val(JSON.stringify($('#jstree').jstree().get_bottom_selected()));
+	});
+});
+</script>
+<?php $this->stop(); ?>

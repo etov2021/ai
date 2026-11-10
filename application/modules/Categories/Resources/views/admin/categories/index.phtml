@@ -1,0 +1,92 @@
+<?php
+
+$menu  = $this->helper('Navigation')->navigation('admin.main')->findAllBy('active', 1);
+$label = !empty($menu) ? end($menu)->getLabel() : '';
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label)
+     ;
+
+?>
+<div class="row">
+	<div class="col-md-12">
+		<h1 class="page-title txt-color-blueDark">
+			<i class="fa fa-table fa-fw "></i>
+			<?php echo $label; ?>
+		</h1>
+	</div>
+</div>
+<div class="row">
+	<div class="col-md-12 table-responsive">
+	<?php if ($this->settings['parent']) : ?>
+        <form action="<?php echo route(); ?>" method="post">
+        	<div class="row">
+                <div class="col-md-12">
+                    <div class="panel panel-default">
+                        <div class="panel-body">
+                        <?php if (!empty($this->items)) : ?>
+                            <div class="form-group">
+                            	<div class="col-md-12" style="margin-bottom: 10px;">
+                                    <input type="submit" class="btn btn-success" name="btnAdd" value="<?php echo translate('Добавяне'); ?>" />
+                                </div>
+                            </div>
+                        	<div class="form-group">
+                            	<div class="col-md-12">
+                                    <div class="dd" style="max-width: 100%; margin-bottom: 20px;" id="nestable3">
+                                        <?php echo $this->partial('admin/categories/_nestable', array('items' => $this->items)); ?>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                            <div class="form-group">
+                            	<div class="col-md-12">
+                                    <input type="submit" class="btn btn-success" name="btnAdd" value="<?php echo translate('Добавяне'); ?>" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+        <?php $this->start('scripts'); ?>
+        <script src="templates/admin/js/plugin/jquery-nestable/jquery.nestable.min.js"></script>
+        <script>
+        var tree = $('#nestable3');
+        tree.nestable({
+        	expandBtnHTML: '',
+        	collapseBtnHTML: '',
+        	maxDepth: 10
+        });
+        var oldData = JSON.stringify(tree.nestable('serialize'));
+        tree.on('change', function() {
+        	var data = JSON.stringify(tree.nestable('serialize'));
+        	if (data === oldData) {
+        		return;
+        	}
+        	ajaxMessage = app.translate('Категориите са подредени');
+        	$.post('<?php echo route(\null, array('action' => 'ajax-set-order')); ?>', {data: data}, function () {
+        		oldData = data;
+        	});
+        });
+        </script>
+        <?php $this->stop(); ?>
+    <?php
+    else:
+        if ($this->settings['sortable']) :
+            echo '<div class="sortable-table" data-ajax-message="Категориите са подредени" data-url="' . route('admin', ['action' => 'ajax-reorder']) . '">' . $this->grid . '</div>';
+        ?>
+        	<?php $this->start('scripts'); ?>
+            <script>
+            $('table.table tbody tr').each(function () {
+            	$(this).attr('id', 'sort-' + $(this).find('td input[name="ids[]"]').val());
+            });
+            </script>
+            <?php $this->stop(); ?>
+        <?php
+        else :
+            echo $this->grid;
+        endif;
+    endif;
+    ?>
+	</div>
+</div>

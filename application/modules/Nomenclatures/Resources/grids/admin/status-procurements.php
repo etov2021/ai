@@ -1,0 +1,101 @@
+<?php
+
+$router = app('router');
+
+return [
+    'paginatorPlacement' => 'bottom',
+    'paginatorAlways' => 0,
+    'buttons' => [
+        'btnAdd' => [
+            'value' => 'Добавяне',
+            'class' => 'btn btn-primary',
+            'resources' => [
+                'Nomenclatures\Controller\Admin\StatusProcurements@add',
+            ],
+        ],
+        'btnActivate' => [
+            'value' => 'Активиране',
+            'class' => 'btn btn-success',
+            'attributes' => [
+                'data-rel' => 'ids[]',
+                'data-action' => $router->assemble(\null, ['action' => 'activate']),
+                'data-confirm' => 'Сигурни ли сте, че искате да активирате избраните записи?',
+            ],
+            'resources' => [
+                'Nomenclatures\Controller\Admin\StatusProcurements@activate',
+            ],
+        ],
+        'btnDeactivate' => [
+            'value' => 'Деактивиране',
+            'class' => 'btn btn-warning',
+            'attributes' => [
+                'data-rel' => 'ids[]',
+                'data-action' => $router->assemble(\null, ['action' => 'deactivate']),
+                'data-confirm' => 'Сигурни ли сте, че искате да деактивирате избраните записи?',
+            ],
+            'resources' => [
+                'Nomenclatures\Controller\Admin\StatusProcurements@deactivate',
+            ],
+        ],
+    ],
+    'columns' => [
+        'ids' => [
+            'type' => 'checkbox',
+            'options' => [
+                'headClass' => 'text-center',
+                'class' => 'text-center',
+                'checkAll' => 1,
+                'sourceField' => 'id',
+                'headStyle' => 'width: 5%',
+            ],
+        ],
+        'id' => [
+            'type' => 'href',
+            'options' => [
+                'title' => '#',
+                'sourceField' => 'id',
+                'sortable' => 1,
+                'headStyle' => 'width: 5%',
+                'params' => [
+                    'action' => 'edit',
+                    'id' => ':id',
+                ],
+            ],
+        ],
+        'name' => [
+            'type' => 'href',
+            'options' => [
+                'title' => 'Наименование',
+                'sourceField' => 'name',
+                'sortable' => 1,
+                'params' => [
+                    'action' => 'edit',
+                    'id' => ':id',
+                ],
+            ],
+        ],
+        'color' => [
+            'options' => [
+                'title' => 'Цвят',
+                'sourceField' => 'color',
+                'viewScript' => 'admin/_grid-color',
+                'headStyle' => 'width: 5%',
+                'headClass' => 'text-center',
+                'class' => 'text-center',
+            ],
+        ],
+        'active' => [
+            'type' => 'boolean',
+            'options' => [
+                'sourceField' => 'active',
+                'sortable' => 1,
+                'title' => 'Активност',
+                'headClass' => 'text-center',
+                'class' => 'text-center',
+                'true' => '<span class="fa fa-check"></span>',
+                'false' => '<span class="fa fa-ban"></span>',
+                'headStyle' => 'width: 5%',
+            ],
+        ],
+    ],
+];

@@ -1,0 +1,72 @@
+<?php
+
+use Programs\Model\Entity\FutureProgram;
+use Programs\Model\Entity\Project;
+
+$label = '';
+$url = '';
+
+if ($this->item instanceof FutureProgram) {
+    $controller = 'future-programs';
+    if ($this->item['category'] == 'invest') {
+        $controller = 'future-programs-invest';
+    }
+    if ($this->item['type'] == 'po') {
+        $controller = 'future-programs-announcements';
+    }
+    $url = '<a href="' . server_url(route_reset('admin', ['module' => 'programs', 'controller' => $controller, 'action' => 'edit', 'id' => $this->item['id']])) . '">' . $this->item['name'] . '</a>';
+    $label = translate('ПТП');
+    if ($this->item['type'] == 'po') {
+        if ($this->item['kind'] == 'pk') {
+            $label = translate('ПК');
+        } else if ($this->item['kind'] == 'po') {
+            $label = translate('ПО');
+        }
+    }
+}
+
+if ($this->item instanceof Project) {
+    $controller = 'projects';
+    if ($this->item['category'] == 'invest') {
+        $controller = 'projects-invest';
+    }
+    $url = '<a href="' . server_url(route_reset('admin', ['module' => 'programs', 'controller' => $controller, 'action' => 'edit', 'id' => $this->item['id']])) . '">' . $this->item['name'] . '</a>';
+    $label = translate('Проект');
+}
+
+?>
+<div style="margin-bottom: 10px;"><strong><?php echo translate('Бенефициенти') ?></strong>: <?php echo $this->clients; ?></div>
+<?php if ($url) : ?>
+	<div style="margin-bottom: 10px;"><strong><?php echo $label; ?></strong>: <?php echo $url; ?></div>
+<?php endif; ?>
+<table style="width: 100%; border-collapse: collapse;">
+	<thead>
+		<tr>
+			<th style="width: 5%; padding: 5px; border: 1px solid black; text-align: left;"><?php echo translate('Дата'); ?></th>
+			<th style="width: 10%; padding: 5px; border: 1px solid black; text-align: left;"><?php echo translate('Потребител'); ?></th>
+			<th style="width: 10%; padding: 5px; border: 1px solid black; text-align: left;"><?php echo translate('Елемент'); ?></th>
+			<th style="width: 25%; padding: 5px; border: 1px solid black; text-align: left;"><?php echo translate('Стара стойност'); ?></th>
+			<th style="width: 25%; padding: 5px; border: 1px solid black; text-align: left;"><?php echo translate('Нова стойност'); ?></th>
+			<th style="width: 25%; padding: 5px; border: 1px solid black; text-align: left;"><?php echo translate('Разлика'); ?></th>
+		</tr>
+	</thead>
+	<tbody>
+	<?php
+	foreach ($this->data as $row) :
+    	$label = $row['field'];
+    	$el = $this->form->getElement($row['field']);
+    	if ($el) {
+    	    $label = $el->getLabel();
+    	}
+	?>
+		<tr>
+			<td style="padding: 5px; border: 1px solid black; vertical-align: top;"><?php echo (new DateTime($row['date']))->format('d.m.Y H:i:s'); ?></td>
+			<td style="padding: 5px; border: 1px solid black; vertical-align: top;"><?php echo $row['user']; ?></td>
+			<td style="padding: 5px; border: 1px solid black; vertical-align: top;"><?php echo $label; ?></td>
+			<td style="padding: 5px; border: 1px solid black; vertical-align: top;"><?php echo $row['old']; ?></td>
+			<td style="padding: 5px; border: 1px solid black; vertical-align: top;"><?php echo $row['new']; ?></td>
+			<td style="padding: 5px; border: 1px solid black; vertical-align: top;"><?php echo $row['diff']; ?></td>
+		</tr>
+	<?php endforeach; ?>
+	</tbody>
+</table>

@@ -1,0 +1,200 @@
+<script  type="text/javascript">
+var app = {
+	url: {
+	    server: '<?php echo server_url(); ?>',
+	    base: '<?php echo base_url(); ?>',
+	    routeQSA: '<?php echo route(); ?>',
+	    route: '<?php echo route(null, [], false, false); ?>',
+	    routeLangHelper: '<?php echo route(null, ['action' => 'lang-helper'], false, false); ?>',
+	    routeSlug: '<?php echo route(null, ['action' => 'slug'], true, false); ?>',
+	},
+	useWorker: 1,
+	language: {
+		ui: <?php echo ($language = app('language', true)) ? $language->toJson() : '{}'; ?>,
+		current: <?php echo ($currentLanguage = app('current_language', true)) ? $currentLanguage->toJson() : '{}'; ?>,
+		default: <?php echo ($defaultLanguage = app('default_language', true)) ? $defaultLanguage->toJson() : '{}'; ?>
+
+	},
+	translate: function (key) {
+	    var translations = <?php echo json_encode((new Translations\Model\Translations())->useUiLanguage()->getTranslations($language ? $language->getCode() : '')); ?>;
+	    return translations[key] || key;
+	},
+
+};
+</script>
+
+<?php echo app('asset')->js(['admin']); ?>
+
+<script  type="text/javascript">
+$(document).ready(function() {
+	//pageSetUp();
+});
+<?php
+$route = app('router')->getCurrentRoute();
+$resourceExport = null;
+$resourceGridPersonalize = null;
+if ($route !== null) {
+    $resource = $route->getHandler();
+    if ($resource instanceof Closure) {
+        $resource = call_user_func($resource, app('request'), app('response'));
+    }
+    if (is_scalar($resource) && preg_match('~@~', $resource)) {
+        list($r, $action) = explode('@', $resource);
+        $resourceExport = $r . '@export';
+        $resourceGridPersonalize = $r . '@gridPersonalize';
+    }
+}
+if ($resourceGridPersonalize && is_allowed($resourceGridPersonalize)) :
+?>
+$(function () {
+
+	$('div.ipp-ranger').after('<a class="btn btn-warning gridPersonalize" style="margin-left: 5px;" href="<?php echo route('admin', ['action' => 'grid-personalize']); ?>"><?php echo translate('Персонализиране на експорта'); ?></a>');
+
+	$('.gridPersonalize').on('click', function () {
+		$('#gridPersonalize').modal('show');
+		$('#gridPersonalize .modal-body').html('<?php echo translate('Зареждане...'); ?>');
+		$.get($(this).attr('href'), function (res) {
+			$('#gridPersonalize .modal-body').html(res);
+		});
+		return false;
+	});
+});
+<?php
+endif;
+if ($resourceExport && is_allowed($resourceExport)) :
+?>
+$(function () {
+
+	$('div.ipp-ranger').after('<a class="btn btn-success" data-handler="export" style="margin-left: 5px;" data-href="<?php echo route('admin', ['action' => 'export']); ?>" href="<?php echo route('admin', ['action' => 'export']); ?>"><?php echo translate('Експорт'); ?></a>');
+
+	$('[data-handler="export"]').on('click', function () {
+		var inputs = $(this).parent().find('table tbody tr td input[type="checkbox"]:checked');
+		var ids = [];
+		inputs.each(function () {
+			ids.push($(this).val());
+		});
+		var href = $(this).attr('data-href');
+		if (ids.length) {
+			href = href + (href.match(/export\?/) ? '&' : '?') + 'selectedIds=' + ids.join(',');
+		}
+		$(this).attr('href', href);
+	});
+
+});
+<?php endif; ?>
+$(function () {
+	var suspect = '<span class="fa fa-exclamation-circle" style="font-size: 2em; color: orange;"> </span> ';
+	$('table tbody tr td [data-suspect="1"]').each(function () {
+		var td = $(this).closest('td');
+		if (td.length) {
+    		td.prepend(suspect);
+		}
+	});
+	$('div[data-suspect="1"]').each(function () {
+		$(this).prepend(suspect);
+	});
+	// copy
+	function copyToClipboard(str) {
+        const el = document.createElement('textarea');
+        el.value = str;
+        el.setAttribute('readonly', '');
+        el.style.position = 'absolute';
+        el.style.left = '-9999px';
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+	}
+	$('form.copyble input[type="text"]:not(.not-copyble), form.copyble textarea:not(.not-copyble)').each(function () {
+		var p = $(this).parent();
+		if (!$(this).closest('form').hasClass('copyble')) {
+			return;
+		}
+		p.find('label').append(' <span data-handler="copy-text" data-value="' + $(this).val().replace(/<.*?>/g, '') + '" class="fa fa-copy" style="cursor: pointer;"></span>');
+	});
+	$('table.copyble tbody tr td:not(.not-copyble)').each(function () {
+		//$(this).css('position', 'relative');
+		var txt = $(this).text();
+		if (!$(this).closest('table').hasClass('copyble')) {
+			return;
+		}
+		if (txt) {
+			$(this).append(' <span data-handler="copy-text" data-value="' + txt.replace(/<.*?>/g, '') + '" class="fa fa-copy" style="cursor: pointer;"></span>');
+		}
+	});
+	$(document).on('click', '[data-handler="copy-text"]', function () {
+		copyToClipboard($(this).attr('data-value'));
+		return false;
+	});
+});
+$(function () {
+	var hasStorage = typeof(Storage) !== undefined;
+	if (hasStorage) {
+		var storage = window.sessionStorage;
+		var storageData = {};
+		var storageItem = storage.getItem('grid_row');
+		if (storageItem === null) {
+			storage.setItem('grid_row', JSON.stringify({}));
+		}
+		try {
+			storageData = JSON.parse(storageItem);
+			if (storageData && storageData.url === app.url.routeQSA) {
+				/* var input = $('table.memory-row tbody tr td[data-source-field="id"] input[value="' + storageData.id + '"]');
+				if (input.length) {
+					var el = input.closest('tr');
+					$([document.documentElement, document.body]).animate({ scrollTop: el.offset().top }, 0);
+					el.effect('highlight', {}, 1000, function () {});
+				} */
+				$([document.documentElement, document.body]).animate({ scrollTop: storageData.scrollTop }, 0);
+				storage.setItem('grid_row', JSON.stringify({}));
+			}
+		} catch (e) {
+			//console.log(e);
+		}
+    	$('table.memory-row tbody a').on('click', function () {
+        	var tr = $(this).closest('tr');
+        	var id = tr.find('td[data-source-field="id"] input').val();
+    		storageData.url = app.url.routeQSA;
+        	storageData.index = tr.index();
+        	storageData.id = id;
+        	storageData.scrollTop = $(document).scrollTop();
+			storage.setItem('grid_row', JSON.stringify(storageData));
+    		//return false;
+    	});
+	}
+});
+
+$(function () {
+	$('.btnNotifyChanges').on('click', function () {
+		var url = $(this).attr('href');
+		smart.confirm('Сигурни ли сте, че искате да изпратите нотификация за направените промени?', function (yes) {
+			if (yes) {
+				ajaxMessage = '<?php echo translate('Нотификацията беше изпратена успешно'); ?>';
+	        	$.post(url, {}, function () {
+
+	        	}).fail(function (res) {
+					//alert(res.responseJSON.error.message);
+	        	});
+			}
+		});
+		return false;
+	});
+});
+</script>
+
+<div style="text-align: left;" id="gridPersonalize" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-body" style="overflow: auto; max-height: 600px;">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo translate('Затвори'); ?></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="templates/admin/js/end-scripts.js"></script>
+
+<?php echo $this->renderSection('scripts'); ?>
+

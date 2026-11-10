@@ -1,0 +1,161 @@
+<?php
+
+use UserManagement\Model\Users;
+
+$users = (new Users())->fetchCachedPairs(null, ['id', 'CONCAT_WS(" ", UsersInfo.firstName, UsersInfo.middleName, UsersInfo.lastName)']);
+
+$authId = identity()->getId();
+
+$view = $this->masterView ?: $this;
+
+if (!isset($view->ALL_OPEN_QUESTIONS)) {
+
+    $sql = '
+        SELECT
+            Questions.*,
+            CONCAT_WS(" ", u1.firstName, u1.middleName, u1.lastName) as owner,
+            Questions.toUserId,
+            ProceduresLang.name as procedures_name,
+            ProjectsLang.name as projects_name,
+            ProcurementsLang.name as procurements_name,
+            fpl.name as future_programs_name,
+            RoadmapMeasuresLang.name as roadmap_measures_name,
+            IF (Questions.target = "future-programs-announcements", fpl.name, NULL) as future_programs_announcements_name,
+            IF (QuestionsReads.userId IS NULL, 0, 1) as readed
+        FROM Questions
+        LEFT JOIN ProceduresLang ON (Questions.target = "procedures" OR Questions.target = "procedures-invest") AND ProceduresLang.procedureId = Questions.targetId AND ProceduresLang.languageId = 1
+        LEFT JOIN ProjectsLang ON (Questions.target = "projects" OR Questions.target = "projects-invest") AND ProjectsLang.projectId = Questions.targetId AND ProjectsLang.languageId = 1
+        LEFT JOIN ProcurementsLang ON Questions.target = "procurements" AND ProcurementsLang.procurementId = Questions.targetId AND ProcurementsLang.languageId = 1
+        LEFT JOIN FutureProgramsLang fpl ON (Questions.target = "future-programs" OR Questions.target = "future-programs-invest" OR Questions.target = "future-programs-announcements") AND fpl.futureProgramId = Questions.targetId AND fpl.languageId = 1
+        LEFT JOIN RoadmapMeasuresLang ON (Questions.target = "roadmap-measures") AND RoadmapMeasuresLang.roadmapMeasureId = Questions.targetId AND RoadmapMeasuresLang.languageId = 1
+        LEFT JOIN QuestionsReads ON QuestionsReads.questionId = Questions.id AND QuestionsReads.userId = ' . $authId . '
+        LEFT JOIN UsersInfo u1 ON u1.userId = Questions.ownerId
+        WHERE 1
+            AND Questions.parentId IS NULL
+            AND Questions.status = "open"
+        ORDER BY
+            Questions.created DESC
+    ';
+
+    $view->ALL_OPEN_QUESTIONS = app('db')->fetchAll($sql);
+}
+
+$questions = $view->ALL_OPEN_QUESTIONS;
+
+$types = [];
+$counts = [];
+
+foreach ($questions as $question) {
+
+    if (isset($this->questionsFromMe) && $this->questionsFromMe) {
+        $toUserId = [$question['ownerId']];
+        if (!in_array($authId, $toUserId)) {
+            continue;
+        }
+    }
+
+    if (isset($this->questionsToMe) && $this->questionsToMe) {
+        $toUserId = (!empty($question['toUserId']) ? explode(',', $question['toUserId']) : []);
+        if (!in_array($authId, $toUserId)) {
+            continue;
+        }
+    }
+
+    $target = $question['target'];
+
+    switch ($target) {
+        case 'procedures-invest':
+            $target = 'procedures';
+            break;
+        case 'projects-invest':
+            $target = 'projects';
+            break;
+        case 'future-programs-invest':
+            $target = 'future-programs';
+            break;
+    }
+
+    if (!isset($types[$target])) {
+        $types[$target] = [];
+    }
+
+    if (!isset($types[$target][$question['targetId']])) {
+        $types[$target][$question['targetId']] = [
+            'name' => ($question[str_replace('-', '_', $target) . '_name'] ?? ''),
+            'questions' => [],
+            'targetController' => $question['target']
+        ];
+    }
+
+    $toUsers = [];
+
+    if ($question['toUserId']) {
+        foreach (explode(',', $question['toUserId']) as $toUserId) {
+            if (isset($users[$toUserId])) {
+                $toUsers[] = $users[$toUserId];
+            }
+        }
+    }
+
+    $question['toUser'] = $toUsers;
+
+    $types[$target][$question['targetId']]['questions'][] = $question;
+
+    if (!isset($counts[$target])) {
+        $counts[$target] = 0;
+    }
+
+    $counts[$target]++;
+}
+
+$currentUrl = server_url(route());
+
+?>
+<li>
+    <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+    <?php if (isset($this->questionsFromMe) && $this->questionsFromMe) : ?>
+    	<span class="fa fa-comment-o" title="<?php echo translate('Въпроси от мен'); ?>"></span>
+    	<span class="badge bg-color-blue" title="<?php echo translate('Въпроси от мен'); ?>"><?php echo array_sum($counts); ?></span>
+	<?php elseif (isset($this->questionsToMe) && $this->questionsToMe) : ?>
+    	<span class="fa fa-comment-o" title="<?php echo translate('Въпроси до мен'); ?>"></span>
+    	<span class="badge bg-color-greenLight" title="<?php echo translate('Въпроси до мен'); ?>"><?php echo array_sum($counts); ?></span>
+	<?php else : ?>
+		<span class="fa fa-comments" title="<?php echo translate('Всички въпроси'); ?>"></span>
+		<span class="badge bg-color-orange" title="<?php echo translate('Всички въпроси'); ?>"><?php echo array_sum($counts); ?></span>
+	<?php endif; ?>
+        <?php //echo translate($this->questionsToMe ? 'Отворени въпроси към мен' : 'Отворени въпроси'); ?>
+        <i class="fa fa-angle-down"></i>
+    </a>
+	<div class="dropdown-menu pull-right fa_width">
+		<div class="panel-body">
+			<div class="faq-tabs">
+            	<ul>
+            		<li><a href="<?php echo $currentUrl; ?>#tab-procedures"><?php echo translate('Процедури'); ?> <span class="badge bg-color-blueLight"><?php echo $counts['procedures'] ?? 0; ?></span></a></li>
+            		<li><a href="<?php echo $currentUrl; ?>#tab-projects"><?php echo translate('Проекти'); ?> <span class="badge bg-color-blueLight"><?php echo $counts['projects'] ?? 0; ?></span></a></li>
+            		<li><a href="<?php echo $currentUrl; ?>#tab-roadmap-measures"><?php echo translate('Приоритетни мерки'); ?> <span class="badge bg-color-blueLight"><?php echo $counts['roadmap-measures'] ?? 0; ?></span></a></li>
+            		<li><a href="<?php echo $currentUrl; ?>#tab-procurements"><?php echo translate('ОП/ПП'); ?> <span class="badge bg-color-blueLight"><?php echo $counts['procurements'] ?? 0; ?></span></a></li>
+            		<li><a href="<?php echo $currentUrl; ?>#tab-fp"><?php echo translate('ПТП'); ?> <span class="badge bg-color-blueLight"><?php echo $counts['future-programs'] ?? 0; ?></span></a></li>
+            		<li><a href="<?php echo $currentUrl; ?>#tab-po"><?php echo translate('ПО/ПК'); ?> <span class="badge bg-color-blueLight"><?php echo $counts['future-programs-announcements'] ?? 0; ?></span></a></li>
+            	</ul>
+            	<div id="tab-procedures" style="max-height: 600px; overflow-y: auto;">
+					<?php echo $this->partial('admin::questions/_faq-tab', ['items' => $types['procedures'] ?? []]); ?>
+            	</div>
+            	<div id="tab-projects" style="max-height: 600px; overflow-y: auto;">
+					<?php echo $this->partial('admin::questions/_faq-tab', ['items' => $types['projects'] ?? []]); ?>
+            	</div>
+            	<div id="tab-roadmap-measures" style="max-height: 600px; overflow-y: auto;">
+					<?php echo $this->partial('admin::questions/_faq-tab', ['items' => $types['roadmap-measures'] ?? []]); ?>
+            	</div>
+            	<div id="tab-procurements" style="max-height: 600px; overflow-y: auto;">
+					<?php echo $this->partial('admin::questions/_faq-tab', ['items' => $types['procurements'] ?? [], 'module' => 'procurements', 'controller' => 'index']); ?>
+            	</div>
+            	<div id="tab-fp" style="max-height: 600px; overflow-y: auto;">
+					<?php echo $this->partial('admin::questions/_faq-tab', ['items' => $types['future-programs'] ?? []]); ?>
+            	</div>
+            	<div id="tab-po" style="max-height: 600px; overflow-y: auto;">
+					<?php echo $this->partial('admin::questions/_faq-tab', ['items' => $types['future-programs-announcements'] ?? []]); ?>
+            	</div>
+        	</div>
+    	</div>
+    </div>
+</li>

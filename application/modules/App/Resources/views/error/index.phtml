@@ -1,0 +1,37 @@
+<?php $this->extend('default::default'); ?>
+<?php if (is_debug() && ($this->exception instanceof Exception || $this->exception instanceof Throwable)) : ?>
+<section>
+    <h2><?php echo $this->exception->getMessage(); ?></h2>
+    <pre><?php echo $this->exception->getTraceAsString(); ?></pre>
+<?php
+    $routes = app('router')->getRoutes();
+    $matches = app('router')->getMatches();
+
+    echo '<pre>';
+    echo '<h2>Route table</h2>';
+    echo '<table border="1">';
+    foreach ($routes as $route) {
+        $match = [
+            'success' => false,
+        ];
+        $data = $route->toArray();
+        if (isset($matches[$route->getName()])) {
+            $match = $matches[$route->getName()];
+            $data  = $match['route']->toArray();
+        }
+        $color = 'padding: 5px; ' . ($match['success'] ? 'background-color: #ccc;' : '');
+        echo '<tr>';
+        echo '<td style="' . $color . ' text-align: center; width: 40px;">' . ($match['success'] ? 'yes' : 'no') . '</td>';
+        echo '<td style="' . $color . '">NAME: ' . $data['name'] . '<br />HANDLER: ' . $data['handler'] . '<br />CONDITIONS: ' . $data['conditions'] . '<br />METHODS: ' . $data['methods'] . '</td>';
+        echo '<td style="' . $color . '">PATTERN: ' . $data['pattern'] . '<br />DEFAULTS: ' . $data['defaults'] . '<br />COMPILED: ' . $data['compiled'] . '<br />MATCHED PARAMS: ' . $data['params'] . '</td>';
+        echo '</tr>';
+    }
+    echo '</table>';
+    echo '</pre>';
+?>
+</section>
+<?php else : ?>
+<section>
+	<h2><?php echo $this->message; ?></h2>
+</section>
+<?php endif; ?>

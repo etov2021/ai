@@ -1,0 +1,87 @@
+<?php
+if (empty($this->questions)) :
+    return;
+endif;
+$authId = identity()->getId();
+?>
+
+<?php foreach ($this->questions as $item) : ?>
+        <div class="card" <?php echo (isset($this->isChild) && $this->isChild) ? ' style="margin-left: 200px;"' : ''; ?> data-id="<?php echo $item['id']; ?>">
+        	<div class="card-body">
+        	<table class="table table-borderless" style="margin: 0;">
+        		<tr data-id="<?php echo $item['id']; ?>">
+        			<td style="width: 200px; border: 0; border-right: 1px solid #ddd;">
+        				<?php echo (new DateTime($item['created']))->format('d.m.Y, H:i:s'); ?>
+						<br />
+						<?php echo translate('от'); ?> <strong><?php echo $item['owner']; ?></strong>
+					<?php
+					if ($item['toUserId']) :
+					   $toUserId = explode(',', $item['toUserId']);
+					   $toUsers = [];
+					   foreach (explode(',', $item['toUserId']) as $toUserId) :
+					       if (isset($this->users[$toUserId])) :
+					           $toUsers[] = $this->users[$toUserId];
+					       endif;
+					   endforeach;
+					   if (!empty($toUsers)) :
+					?>
+						<br />
+						<?php echo translate('до'); ?> <strong><?php echo implode(', ', $toUsers); ?></strong>
+					<?php
+					   endif;
+					endif;
+					?>
+				<?php if (!$item['parentId']) : ?>
+        			<?php if ($authId == $item['ownerId']) : ?>
+        				<select class="select2" data-handler="status" data-id="<?php echo $item['id']; ?>" data-status="<?php echo $item['status']; ?>" class="form-control" style="margin-top: 5px;"><?php echo build_options($this->statuses, $item['status']); ?></select>
+    				<?php else: ?>
+    					<select class="select2" data-handler="status" data-id="<?php echo $item['id']; ?>" data-status="<?php echo $item['status']; ?>" class="form-control" style="margin-top: 5px;" disabled><?php echo build_options($this->statuses, $item['status']); ?></select>
+    				<?php endif; ?>
+        			<br />
+    			<?php endif; ?>
+        			</td>
+    				<td style="border: 0;">
+        				<?php
+        				echo nl2br($item['text']);
+        				if ($item['toUserComments']) :
+        				    $toUserComments = json_decode($item['toUserComments'], true);
+        				    echo '<div style="font-size: 0.9em;">';
+        				    echo '<h3 style="margin: 5px 0 0 0;"><strong>' . translate('Коментари') . '</strong></h3>';
+        				    foreach ($toUserComments as $toUserComment) {
+        				        $toUsersCommentsNames = [];
+        				        foreach ($toUserComment['users'] as $toUserCommentUserId) {
+        				            if (isset($this->users[$toUserCommentUserId])) :
+        				                $toUsersCommentsNames[] = $this->users[$toUserCommentUserId];
+        				            endif;
+        				        }
+        				        echo '<div style="margin-top: 5px;"><strong>' . translate('към') . ' ' . implode(', ', $toUsersCommentsNames) . ':</strong> ' . nl2br($toUserComment['comment']) . '</div>';
+        				    }
+        				    echo '</div>';
+        				endif;
+        				?>
+        			</td>
+        			<td style="width: 385px; border: 0; text-align: right; font-size: 0.9em;">
+        			<?php if ($item['parentId']) : ?>
+        				<?php if ($authId == $item['ownerId']) : ?>
+        				<button class="btn btn-primary btn-sm" data-handler="edit-answer-button" data-id="<?php echo $item['id']; ?>" data-questionId="<?php echo $item['parentId']; ?>"><?php echo translate('Редактиране'); ?></button>
+        				<button class="btn btn-danger btn-sm" data-handler="delete-answer-button" data-id="<?php echo $item['id']; ?>" data-questionId="<?php echo $item['parentId']; ?>">x</button>
+        				<?php endif; ?>
+        			<?php else: ?>
+        				<button class="btn btn-success btn-sm" data-handler="add-answer-button" data-id="<?php echo $item['id']; ?>"><?php echo translate('Отговор'); ?></button>
+    					<button class="btn btn-warning btn-sm" data-handler="add-to-user-button" data-id="<?php echo $item['id']; ?>"><?php echo translate('Добави потребител'); ?></button>
+        				<?php if ($authId == $item['ownerId']) : ?>
+        				<button class="btn btn-primary btn-sm" data-handler="edit-question-button" data-id="<?php echo $item['id']; ?>"><?php echo translate('Редактиране'); ?></button>
+        				<button class="btn btn-danger btn-sm" data-handler="delete-question-button" data-id="<?php echo $item['id']; ?>">x</button>
+    					<?php endif; ?>
+        			<?php endif; ?>
+        			</td>
+        		</tr>
+        	</table>
+        	</div>
+        </div>
+    <?php
+    if (!empty($item['children'])) :
+        echo $this->partial('admin::questions/ajax-questions-nestable', ['questions' => $item['children'], 'statuses' => $this->statuses, 'users' => $this->users, 'isChild' => true]);
+    endif;
+    ?>
+<?php endforeach; ?>

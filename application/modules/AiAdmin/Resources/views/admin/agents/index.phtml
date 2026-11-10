@@ -1,0 +1,44 @@
+<?php
+
+$label = 'AI - Агенти';
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label);
+
+?>
+<div class="row">
+	<div class="col-12">
+		<div class="card">
+			<div class="card-body">
+				<h2 class="mb-4"><i class="fa fa-android fa-fw"></i> <?php echo escape($label); ?></h2>
+				<p>
+					<a class="btn btn-primary" href="<?php echo escape($this->addUrl); ?>">Добавяне</a>
+					<a class="btn btn-default" href="<?php echo escape($this->homeUrl); ?>">Назад</a>
+				</p>
+				<div class="table-responsive">
+					<table class="table table-striped">
+						<thead>
+							<tr><th>Код</th><th>Име</th><th>Доставчик / Модел</th><th>Инструменти</th><th>Стъпки</th><th>Статус</th><th></th></tr>
+						</thead>
+						<tbody>
+						<?php foreach ($this->rows as $row) : $a = $row['item']; ?>
+							<tr>
+								<td><?php echo escape($a->code); ?></td>
+								<td><?php echo escape($a->name); ?></td>
+								<td><?php echo escape($a->providerCode . ' / ' . $a->model); ?></td>
+								<td><?php echo escape(implode(', ', $a->toolCodes)); ?></td>
+								<td><?php echo (int) $a->maxSteps; ?></td>
+								<td><?php echo $a->runnable ? 'активен' : '<span class="text-muted">неактивен</span>'; ?></td>
+								<td><a href="<?php echo escape($row['edit']); ?>">Редактиране</a></td>
+							</tr>
+						<?php endforeach; ?>
+						<?php if (empty($this->rows)) : ?>
+							<tr><td colspan="7" class="text-muted">Няма агенти.</td></tr>
+						<?php endif; ?>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>

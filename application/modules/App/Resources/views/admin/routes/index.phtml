@@ -1,0 +1,82 @@
+<?php
+
+$label = 'Route table';
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label)
+     ;
+
+?>
+<div class="row">
+	<div class="col-md-12">
+		<h1 class="page-title txt-color-blueDark">
+			<i class="fa fa-table fa-fw "></i>
+			<?php echo $label; ?>
+		</h1>
+	</div>
+</div>
+<form action="<?php echo route(); ?>" method="post">
+    <div class="row" style="margin-bottom: 15px;">
+    	<div class="col-md-12 text-right">
+    		<input type="submit" class="btn btn-primary" name="btnSave" value="<?php echo translate('Запазване'); ?>" />
+    	</div>
+    </div>
+    <div class="row">
+    	<div class="col-md-12">
+    		<div class="sortable-table" data-url="<?php echo route_reset('admin', ['module' => 'app', 'controller' => 'routes', 'action' => 'ajax-reorder']); ?>">
+            	<table class="table table-hover table-bordered table-striped" style="margin: 0;">
+        			<thead>
+        				<tr>
+        					<th style="width: 5%"></th>
+        					<th style="width: 20%">Name</th>
+        					<th>Pattern</th>
+        					<th>Handler</th>
+        					<th style="width: 5%"></th>
+        				</tr>
+        			</thead>
+        			<tbody>
+        			<?php
+        			foreach ($this->routes as $name => $route) :
+                        $isDefault = (isset($route['default_route']) && $route['default_route']);
+        			?>
+        				<tr id="sort-<?php echo strtr($name, '-', '#'); ?>">
+        					<td class="text-center"><span class="handle fa fa-reorder" style="cursor: pointer;"></span></td>
+        					<td><?php echo $name; ?></td>
+        					<td><input name="routes[<?php echo $name; ?>][pattern]" type="<?php echo $isDefault ? 'hidden' : 'text'; ?>" class="form-control" value="<?php echo isset($route['pattern']) ? $route['pattern'] : ''; ?>" /></td>
+        					<td><input name="routes[<?php echo $name; ?>][handler]" type="<?php echo $isDefault ? 'hidden' : 'text'; ?>" class="form-control" value="<?php echo isset($route['handler']) ? $route['handler'] : ''; ?>" /></td>
+        					<td class="text-center">
+        						<span data-toggle="modal" data-target="#myModal-<?php echo $name; ?>" class="fa fa-info" style="cursor: pointer"></span>
+            					<div style="text-align: left;" id="myModal-<?php echo $name; ?>" class="modal fade" role="dialog">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-body" style="overflow: auto; max-height: 600px;">
+                        						<div><strong>Name:</strong> <?php echo $name; ?></div>
+                        						<div><strong>Pattern:</strong> <?php echo isset($route['pattern']) ? $route['pattern'] : '-'; ?></div>
+                        						<div><strong>Handler:</strong> <?php echo isset($route['handler']) ? $route['handler'] : '-'; ?></div>
+                        						<div><strong>Methods:</strong> <?php echo isset($route['methods']) ? json_encode($route['methods']) : '-'; ?></div>
+                            					<div><strong>Conditions:</strong> <?php echo isset($route['conditions']) ? json_encode($route['conditions']) : '-'; ?></div>
+                            					<div><strong>Defaults:</strong> <?php echo isset($route['defaults']) ? json_encode($route['defaults']) : '-'; ?></div>
+                            					<div><strong>Middlewares:</strong> <?php echo isset($route['middlewares']) ? json_encode($route['middlewares']) : '-'; ?></div>
+                            					<div><strong>On assemble:</strong> <?php echo isset($route['on_assemble']) ? $route['on_assemble'] : '-'; ?></div>
+                            					<div><strong>On match:</strong> <?php echo isset($route['on_match']) ? $route['on_match'] : '-'; ?></div>
+                            					<div><strong>Default route:</strong> <?php echo isset($route['default_route']) ? ($route['default_route'] ? 'Yes' : 'No') : '-'; ?></div>
+                            					<div><strong>Literal:</strong> <?php echo isset($route['literal']) ? $route['literal'] : '-'; ?></div>
+                            					<div><strong>Namespace:</strong> <?php echo isset($route['namespace']) ? $route['namespace'] : '-'; ?></div>
+            								</div>
+        								</div>
+    								</div>
+    							</div>
+        					</td>
+        				</tr>
+        			<?php endforeach; ?>
+        			</tbody>
+        		</table>
+    		</div>
+    	</div>
+    </div>
+    <div class="row" style="margin-top: 15px;">
+    	<div class="col-md-12 text-right">
+    		<input type="submit" class="btn btn-primary" name="btnSave" value="<?php echo translate('Запазване'); ?>" />
+    	</div>
+    </div>
+</form>

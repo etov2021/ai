@@ -1,0 +1,16 @@
+<aside id="left-panel">
+	<nav>
+	<?php
+	$domain = app('domain', true);
+	if ($domain) {
+    	echo $this->partial(
+    	    'layouts/admin/includes/_nav-child',
+    	    ['items' => $this->helper('Navigation')->navigation('admin.main', $domain->getId()), 'active' => 1]
+        );
+	}
+	?>
+	</nav>
+	<span class="minifyme" data-action="minifyMenu">
+		<i class="fa fa-arrow-circle-left hit"></i>
+	</span>
+</aside>

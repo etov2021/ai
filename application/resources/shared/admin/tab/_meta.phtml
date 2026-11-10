@@ -1,0 +1,47 @@
+<?php
+
+use Seo\Model\Entity\MetaInterface;
+
+if (!isset($this->form) || !isset($this->item)) {
+    return;
+}
+
+if (!$this->item instanceof MetaInterface) :
+    echo get_class($this->item) . ' must implements ' . MetaInterface::class;
+    return;
+endif;
+
+?>
+<form class="meta form-horizontal" action="<?php echo route(); ?>" method="post" enctype="multipart/form-data">
+	<div class="form-group">
+        <div class="col-md-12">
+            <label class="control-label"><?php echo translate('Заглавие'); ?></label>
+            <?php echo $this->form->__metaTitle; ?>
+        </div>
+    </div>
+    <div class="form-group">
+        <div class="col-md-12">
+            <label class="control-label"><?php echo translate('Описание'); ?></label>
+            <?php echo $this->form->__metaDescription; ?>
+        </div>
+    </div>
+    <div>
+    	<input type="hidden" name="target" value="<?php echo $this->item->getTarget(); ?>" />
+    	<input type="hidden" name="targetId" value="<?php echo (int) $this->item->getTargetId(); ?>" />
+    </div>
+</form>
+<?php $this->start('scripts'); ?>
+<script>
+var timeoutId = 0;
+$('textarea[name="__metaTitle"], textarea[name="__metaDescription"]').on('input propertychange', function () {
+	var that = $(this);
+	var form = that.closest('form');
+	clearTimeout(timeoutId);
+	timeoutId = setTimeout(function() {
+		var data = form.serializeArray();
+		ajaxMessage = '<?php echo translate('Информацията е обновена'); ?>';
+		$.post('<?php echo route('admin', ['module' => 'seo', 'controller' => 'index', 'action' => 'save']); ?>', data, function () {});
+	}, 500);
+});
+</script>
+<?php $this->stop(); ?>

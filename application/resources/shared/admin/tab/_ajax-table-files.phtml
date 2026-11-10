@@ -1,0 +1,95 @@
+<?php
+
+$language = app('current_language', true);
+$code = $language ? $language->getCode() : '';
+
+$files = [];
+
+if (isset($this->files)) :
+    $files = $this->files;
+endif;
+
+$useTags = isset($this->useTags) && $this->useTags ? 1 : 0;
+
+?>
+
+<table class="table table-bordered table-hover" style="margin-bottom: 0;">
+	<thead>
+		<tr>
+			<th style="width: 15%"><?php echo translate('Файл'); ?></th>
+			<th>
+				<?php echo translate('Информация на'); ?>
+				<?php echo render_flag(); ?>
+			</th>
+			<th class="text-center" style="width: 100px">
+				<input type="checkbox" data-handler="check-all" data-rel="ids[]" />
+			</th>
+		</tr>
+	</thead>
+	<tbody>
+<?php
+if (!empty($files)) :
+	foreach ($files as $file) :
+	    $metadata = $file['metadata'];
+	    $exists   = $file->isExists();
+        $isImage  = $file->isImage();
+        $isLink   = $file->isLink();
+        $tags     = explode(",", $file['tags']);
+?>
+		<tr id="sort-<?php echo $file['id']; ?>">
+			<td>
+				<div style="margin-top: 5px">
+				<span class="handle fa fa-reorder" style="cursor: pointer;"></span>
+				<?php if ($isImage) : ?>
+					<small><?php echo $file['name']; ?> (<?php echo round($file['size'] / 1000, 2); ?>&nbsp;KB)</small>
+    				<div style="margin-top: 5px">
+                         <a target="_blank" href="<?php echo route_reset('file-download', ['hash' => $file['hash']]); ?>">
+                        <?php if ($isImage) : ?>
+                            <img class="img-thumbnail" style="width: 100%" src="<?php echo $file->getUrl(); ?>">
+                        <?php else: ?>
+                        	<i class="fa fa-file-word-o" style="font-size:33px" aria-hidden="true"></i>
+                        	<?php echo ($exists ? '' : '<strike>'); ?>
+                        	<?php echo $file['name']; ?>
+                        	<?php echo ($exists ? '' : '</strike>'); ?>
+                        <?php endif; ?>
+                        </a>
+                    </div>
+				<?php elseif ($isLink) : ?>
+					<a href="<?php echo $file['name']; ?>" target="_blank"><?php echo $file['name']; ?></a>
+				<?php else: ?>
+				 	<small><a href="<?php echo route_reset('file-download', ['hash' => $file['hash']]); ?>"><?php echo $file['name']; ?></a>&nbsp;(<?php echo round($file['size'] / 1000, 2); ?>&nbsp;KB)</small>
+           	    <?php endif; ?>
+                </div>
+			</td>
+			<td class="metadata">
+			    <div class="form-group" style="margin-bottom: 0; position: relative;">
+					<div class="col-md-12">
+						<label class="control-label" style="padding: 0;"><?php echo translate('Име'); ?></label>
+						<input data-field="name" data-id="<?php echo $file['id']; ?>" type="text" value="<?php echo (isset($metadata[$code]) && isset($metadata[$code]['name']) ? $metadata[$code]['name'] : ''); ?>" class="form-control">
+                    </div>
+                    <div class="col-md-12">
+						<label class="control-label" style="padding: 10px 0 0 0;"><?php echo translate('Описание'); ?></label>
+						<textarea data-field="content" data-id="<?php echo $file['id']; ?>" type="text" class="form-control" rows="3"><?php echo (isset($metadata[$code]) && isset($metadata[$code]['content']) ? $metadata[$code]['content'] : ''); ?></textarea>
+                    </div>
+                <?php if ($useTags) : ?>
+                    <div class="col-md-12">
+						<label class="control-label" style="padding: 10px 0 0 0;"><?php echo translate('Тагове'); ?></label>
+						<select data-field="tags" multiple  data-id="<?php echo $file['id']; ?>"  class="form-control select2 fileTags">
+						<?php foreach ($this->tags as $tag) : ?>
+							<option value="<?php echo $tag; ?>" <?php echo (in_array($tag, $tags)) ? 'selected' : ''; ?>><?php echo $tag; ?></option>
+						<?php endforeach; ?>
+						</select>
+                    </div>
+                <?php endif; ?>
+				</div>
+			</td>
+			<td class="text-center">
+				<input type="checkbox" name="ids[]" value="<?php echo $file['id']; ?>" />
+			</td>
+		</tr>
+<?php
+	endforeach;
+endif;
+?>
+	</tbody>
+</table>

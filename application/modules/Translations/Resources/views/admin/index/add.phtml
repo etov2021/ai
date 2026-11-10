@@ -1,0 +1,63 @@
+<?php
+
+$label = translate($this->item->getId() ? 'Редактиране' : 'Добавяне');
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label)
+     ;
+
+$this->hookToMenu('admin.main', 'admin.translations', $label);
+
+?>
+<div class="row">
+	<div class="col-12">
+		<div class="card">
+			<div class="card-body">
+        		<h2 class="mb-4">
+        			<i class="mdi mdi-translate"></i>
+        			<?php echo $label; ?>
+        		</h2>
+                <form class="form-horizontal" action="<?php echo route(); ?>" method="post" enctype="multipart/form-data">
+                	<div class="row mb-3">
+                		<div class="col-md-12">
+                			<?php echo $this->form->domainId->renderLabel(); ?>
+                            <?php echo $this->form->domainId; ?>
+                		</div>
+                	</div>
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <?php echo $this->form->alias->renderLabel(); ?>
+                            <?php echo $this->form->alias; ?>
+                            <input type="hidden" name="id" value="<?php echo $this->item['id']; ?>" />
+                        </div>
+                    </div>
+                <?php foreach ($this->form->getElements() as $element) : if (!preg_match('~^language_~', $element->getName())) continue; ?>
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                        	<label class="control-label">
+                        		<img src="templates/admin/images/blank.gif" class="flag flag-<?php echo $element->language->getLocale(); ?>" alt="<?php echo $element->language->getName(); ?>">
+                            	<?php echo $element->getLabel(); ?>
+                    		</label>
+                            <?php echo $element; ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+                	<div class="row mb-3">
+                		<div class="col-md-12">
+                			<label class="checkbox-inline">
+                				<?php echo $this->form->active; ?>
+                				<?php echo $this->form->active->getLabel(); ?>
+                			</label>
+                		</div>
+                	</div>
+                    <div class="mt-3">
+                        <?php echo $this->form->btnSave; ?>
+                        <?php echo $this->form->btnApply; ?>
+                        <?php echo $this->form->btnBack; ?>
+                    </div>
+                </form>
+
+			</div>
+		</div>
+	</div>
+</div>

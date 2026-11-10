@@ -1,0 +1,26 @@
+<?php
+
+$label = translate($this->item->getId() ? 'Редактиране' : 'Добавяне');
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label)
+     ;
+
+$this->hookToMenu('admin.main', 'admin.pages', $label);
+
+$currentUrl = server_url(route());
+
+?>
+<div class="row">
+	<div class="col-md-12">
+		<h1 class="page-title txt-color-blueDark">
+			<i class="fa fa-pencil-square-o fa-fw "></i>
+			<?php echo $this->item['name']; ?>
+		</h1>
+	</div>
+</div>
+<div class="panel panel-default">
+    <div class="panel-body">
+    	<?php echo $this->item['content']; ?>
+    </div>
+</div>

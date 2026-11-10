@@ -1,0 +1,538 @@
+<?php
+
+use Files\Entity\FileInterface;
+use Micro\Model\Entity\TranslationInterface;
+use Files\Table\FilesTags;
+
+if (!isset($this->form) || !isset($this->item)) {
+    echo sprintf('Item and Form not found');
+    return;
+}
+
+if (!$this->item instanceof FileInterface) :
+    echo get_class($this->item) . ' must implements ' . FileInterface::class;
+    return;
+endif;
+
+$type = isset($this->galleryFiles) ? $this->galleryFiles : 'galleryFiles';
+
+if (!$this->form->$type) {
+    echo sprintf('Form element "%s" not found', $type);
+    return;
+}
+
+$fileSettings = $this->item->getFileSettings();
+
+$useTags = isset($fileSettings[$type]['useTags']) && $fileSettings[$type]['useTags'] ? true : false;
+
+if (isset($fileSettings[$type]) && isset($fileSettings[$type]['language_dependent'])) {
+    if ($this->item instanceof TranslationInterface && !$this->item->getLanguageId()) {
+        echo translate('Моля създайте запис за този език.');
+        return;
+    }
+}
+
+$tags = [];
+if (isset($fileSettings[$type]) && $useTags) {
+    $fileTags = new FilesTags();
+    $tags = $fileTags->getTags( $this->item->getTarget(), $this->item->getTargetId());
+}
+
+?>
+<?php if (isset($this->galleryHeader)) : ?>
+<h3 style="margin-top: 0px;"><?php echo translate($this->galleryHeader); ?></h3>
+<?php endif; ?>
+<form id="<?php echo $type; ?>-gallery" class="form-horizontal" style="margin-top: 10px" action="<?php echo route(); ?>" method="post" enctype="multipart/form-data">
+   <div class="form-group">
+    	<div class="col-md-12">
+    	    <div class="dropzone" style="min-height:100px" id="my-dropzone" name="mainFileUploader">
+    	    	
+                <div class="fallback">
+                    <span class="text-center">
+                    	<span class="font-lg visible-xs-block visible-sm-block visible-lg-block">
+                    		<label class="btn btn-default btn-file">
+                			<?php
+                    			//echo translate('Избери файлове за качване');
+                    			//$this->form->$type->setAttribute('style', 'display: none');
+                    			echo $this->form->$type;
+                			?>
+                            </label>
+                     	</span>
+                    </span>
+                	<div class="row">
+                		<div class="col-md-12 pull-left">
+                    		<a id="<?php echo $type; ?>-openFileManager" href="js/plugins/filemanager/dialog.php?&type=1&view=0&relative_url=1&lang=bg_BG&multiple_select=1&multiple_select_callback=responsive_filemanager_callback_multiple_select_<?php echo $type; ?>" class="btn btn-default" type="button">
+                                	<?php echo translate('Или избери файлове за качване от файловия мениджър'); ?>
+                            	</a>
+                                <div id="<?php echo $type; ?>-openFileManagerDialog"></div>
+                         </div>
+                		<div class="col-md-6 pull-left dz-message">
+                			<div class="mb-3">
+                                <i class="display-4 text-muted bx bxs-cloud-upload"></i>
+                            </div>
+                            <?php echo translate('Дръпни и пусни файл'); ?>
+                    	</div>
+                	</div>
+                </div>
+            </div>
+         </div>
+    </div>
+    <div class="form-group mt-4" style="margin-bottom: 0">
+    	<div class="col-md-12">
+    	<?php if ($useTags) : ?>
+            <?php asset('admin')->addJs('templates/admin/js/plugin/bootstrap-tags/bootstrap-tagsinput.js');?>
+            <div class="text-left pull-left">
+                <label>
+                	<input class="form-control tagsinput" data-role="tagsinput" value="<?php echo implode(",", $tags);?>" placeholder="Add new tag">
+                </label>
+            </div>
+        <?php endif; ?>
+            <div class="text-end">
+            	<a class="btn btn-danger" style="width: 100px" data-handler="delete-selected" data-rel="ids[]" href="#"><?php echo translate('Изтриване'); ?></a>
+            </div>
+         </div>
+		<div class="col-md-12" id="<?php echo $type; ?>-ajaxGalleryFiles">
+			<?php echo $this->partial('admin::tab/_ajax-table-files', ['useTags'=> $useTags, 'files' => $this->item->getFiles($type), 'tags' => $tags]); ?>
+		</div>
+	</div>
+</form>
+<?php $this->start('styles'); ?>
+<style>
+#<?php echo $type; ?>-ajaxGalleryFiles .table tbody tr td {
+	background-color: #fff;
+}
+#<?php echo $type; ?>-ajaxGalleryFiles .table tbody tr.ui-state-highlight td {
+    height: 1.5em;
+    line-height: 1.2em;
+	background-color: #ddd;
+}
+#<?php echo $type; ?>-openFileManagerDialog {
+	display: none;
+}
+</style>
+<?php $this->stop(); ?>
+<?php //asset('admin')
+//    ->add('/templates/admin/css/smartadmin-production-plugins.min.css')
+  //  ->add('/templates/admin/css/smartadmin-production.min.css');
+?>
+
+<?php $this->start('scripts'); ?>
+<script>
+
+
+makeTableSortable_<?php echo $type; ?>();
+
+function responsive_filemanager_callback_multiple_select_<?php echo $type; ?>(files)
+{
+	$('#<?php echo $type; ?>-openFileManagerDialog').dialog('close');
+
+	var form = new FormData();
+
+	for (var i = 0, n = files.length; i < n; ++i) {
+		form.append('files[]', files[i]);
+	}
+	if($('.bootstrap-tagsinput span.active').length) {
+		form.append('tag', $('.bootstrap-tagsinput span.active').text());
+	}
+	form.append('type', '<?php echo $type; ?>');
+	form.append('target', '<?php echo $this->item->getTarget(); ?>');
+	form.append('targetId', '<?php echo (int) $this->item->getTargetId(); ?>');
+	form.append('settings', JSON.stringify(<?php echo json_encode($this->item->getFileSettings()); ?>));
+
+	if (files.length === 1) {
+		ajaxMessage = '<?php echo translate('Файлът е добавен'); ?>';
+	} else {
+		ajaxMessage = '<?php echo translate('Файловете са добавени'); ?>';
+	}
+
+    $.ajax({
+		type: "POST",
+		url: "<?php echo route_reset('admin', ['module' => 'files', 'controller' => 'index', 'action' => 'upload-files-from-public']); ?>",
+		data: form,
+		processData: false,
+		contentType: false,
+		success: function (res) {
+            $('#<?php echo $type; ?>-ajaxGalleryFiles').html(res);
+            makeTableSortable_<?php echo $type; ?>();
+        	updateTags();
+		},
+        error: function (xhr) {
+			//alert(xhr.responseText);
+        }
+	})
+}
+
+$('#<?php echo $type; ?>-gallery').on('click', '[data-handler="check-all"]', function () {
+	var name = $(this).attr('data-rel');
+	var checkboxes = $('#<?php echo $type; ?>-gallery input[type="checkbox"][name="' + name + '"]');
+	if ($(this).is(':checked')) {
+		checkboxes.prop('checked', true);
+	} else {
+		checkboxes.prop('checked', false);
+	}
+});
+
+$('#<?php echo $type; ?>-gallery').on('click', '[data-handler="delete-selected"]', function () {
+	var name = $(this).attr('data-rel');
+	var ids  = $('#<?php echo $type; ?>-gallery input[type="checkbox"][name="' + name + '"]:checked');
+	if (ids.length) {
+		smart.confirm("Сигурни ли сте, че искате да изтриете избраните записи?", function (yes) {
+			if (yes) {
+				var data = [];
+				ids.each(function () {
+					data.push({name: "id[]", value: $(this).val()});
+				});
+				if (ids.length === 1) {
+					ajaxMessage = 'Файлът е изтрит';
+				} else {
+					ajaxMessage = 'Файловете са изтрити';
+				}
+				$('#<?php echo $type; ?>-gallery [data-handler="check-all"]').prop('checked', false);
+				$.post('<?php echo route_reset('admin', ['module' => 'files', 'controller' => 'index', 'action' => 'delete-file']); ?>', data, function () {
+					ids.each(function () {
+						$(this).closest('tr').remove();
+					});
+					makeTableSortable_<?php echo $type; ?>();
+					updateTags();
+				});
+			}
+		});
+	} else {
+		smart.alert("Моля, изберете файлове за изтриване");
+	}
+	return false;
+});
+
+$("#<?php echo $type; ?>-openFileManagerDialog").dialog({
+	title: '<?php echo translate('File manager'); ?>',
+    autoOpen: false,
+    modal: true,
+    position: ['top', 20],
+    width: '80%',
+    height: $(document).height() - 40,
+    open: function () {
+    	$('.ui-dialog').css('position', 'fixed');
+    },
+    close: function () {
+		$('#<?php echo $type; ?>-openFileManagerIframe').remove();
+    }
+});
+
+$('#<?php echo $type; ?>-openFileManager').on('click', function () {
+	var iframe = $('<iframe id="<?php echo $type; ?>-openFileManagerIframe" style="width: 100%; min-height: 100%;" src="' + $(this).attr('href') + '" frameborder="0"></iframe>');
+	$('#<?php echo $type; ?>-openFileManagerDialog').html(iframe);
+	$('#<?php echo $type; ?>-openFileManagerDialog').dialog('open');
+	return false;
+});
+
+
+$('.dropzone').droppable();
+
+$('.dropzone').bind('dragover drop', function(event) {
+
+    event.stopPropagation();
+    event.preventDefault();
+
+    if (event.type == 'drop') {
+		var acceptedFiles = [];
+    	var link = event.originalEvent.dataTransfer.getData('Text');
+    	if (link) {
+    		acceptedFiles[0] = link;
+    	} else {
+        	var accept = $(this).find('input[type="file"]').attr('accept');
+        	if (accept) {
+        		accept = accept.split(',');
+        		var files = event.originalEvent.dataTransfer.files;
+                for (var i = 0; i < files.length; ++i) {
+                	var name = files[i].name.toLowerCase();
+                    var ext  = name.slice((name.lastIndexOf('.') - 1 >>> 0) + 1);
+                    for (var j = 0, k = accept.length; j < k; ++j) {
+                    	var type = $.trim(accept[j]);
+                    	if (files[i].type == type
+                        	|| (type.substring(0, 1) === '.' && type === ext)
+                    	) {
+                	    	acceptedFiles.push(files[i]);
+                	    	break;
+                	    }
+                    }
+                }
+        	} else {
+        		acceptedFiles = this.files;
+        	}
+        	if (acceptedFiles.length === 0) {
+        		$(this).val('');
+        	    return;
+        	}
+    	}
+
+    	var form = $(this).closest('form');
+    	var formData = new FormData();
+
+    	for (var i = 0; i < acceptedFiles.length; ++i) {
+    	    formData.append('<?php echo $type; ?>[]', acceptedFiles[i]);
+    	}
+
+		if($('.bootstrap-tagsinput span.active').length) {
+			formData.append('tag', $('.bootstrap-tagsinput span.active').text());
+		}
+
+    	formData.append('type', '<?php echo $type; ?>');
+    	formData.append('target', '<?php echo $this->item->getTarget(); ?>');
+    	formData.append('targetId', '<?php echo $this->item->getTargetId(); ?>');
+    	formData.append('settings', JSON.stringify(<?php echo json_encode($this->item->getFileSettings()); ?>));
+
+    	if (acceptedFiles.length === 1) {
+    		ajaxMessage = '<?php echo translate('Файлът е добавен'); ?>';
+    	} else {
+    		ajaxMessage = '<?php echo translate('Файловете са добавени'); ?>';
+    	}
+
+        $.ajax({
+            url: '<?php echo route('admin', ['module' => 'files', 'controller' => 'index', 'action' => 'upload-files']); ?>',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function (res) {
+                if (res) {
+                    $('#<?php echo $type; ?>-ajaxGalleryFiles').html(res);
+                    makeTableSortable_<?php echo $type; ?>();
+                	updateTags();
+                }
+            },
+            error: function (xhr) {
+    			//alert(xhr.responseText);
+            }
+        });
+
+        $(this).val('');
+
+    }
+});
+
+
+$('#<?php echo $type; ?>-gallery').on('change', '[type="file"]', function () {
+
+
+	var accept        = $(this).attr('accept');
+	var acceptedFiles = [];
+
+	if (accept) {
+		accept = accept.split(',');
+		var files = this.files;
+        for (var i = 0; i < files.length; ++i) {
+        	var name = files[i].name.toLowerCase();
+            var ext  = name.slice((name.lastIndexOf('.') - 1 >>> 0) + 1);
+            for (var j = 0, k = accept.length; j < k; ++j) {
+            	var type = $.trim(accept[j]);
+            	if (files[i].type == type
+                	|| (type.substring(0, 1) === '.' && type === ext)
+            	) {
+        	    	acceptedFiles.push(files[i]);
+        	    	break;
+        	    }
+            }
+        }
+	} else {
+		acceptedFiles = this.files;
+	}
+
+	if (acceptedFiles.length === 0) {
+		$(this).val('');
+	    return;
+	}
+
+	var form = $(this).closest('form');
+
+	var formData = new FormData();
+
+	for (var i = 0; i < acceptedFiles.length; ++i) {
+	    formData.append('<?php echo $type; ?>[]', acceptedFiles[i]);
+	}
+
+	if($('.bootstrap-tagsinput span.active').length) {
+		formData.append('tag', $('.bootstrap-tagsinput span.active').text());
+	}
+	formData.append('type', '<?php echo $type; ?>');
+	formData.append('target', '<?php echo $this->item->getTarget(); ?>');
+	formData.append('targetId', '<?php echo $this->item->getTargetId(); ?>');
+	formData.append('settings', JSON.stringify(<?php echo json_encode($this->item->getFileSettings()); ?>));
+
+	if (acceptedFiles.length === 1) {
+		ajaxMessage = '<?php echo translate('Файлът е добавен'); ?>';
+	} else {
+		ajaxMessage = '<?php echo translate('Файловете са добавени'); ?>';
+	}
+    $.ajax({
+        url: '<?php echo route('admin', ['module' => 'files', 'controller' => 'index', 'action' => 'upload-files']); ?>',
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function (res) {
+            if (res) {
+                $('#<?php echo $type; ?>-ajaxGalleryFiles').html(res);
+                makeTableSortable_<?php echo $type; ?>();
+              	updateTags();
+            }
+        },
+        error: function (xhr) {
+			//alert(xhr.responseText);
+        }
+    });
+
+    $(this).val('');
+});
+
+var timeoutIds_<?php echo $type; ?> = {};
+
+$('#<?php echo $type; ?>-gallery').on('input propertychange select2:select select2:unselect', '.metadata input, .metadata textarea, .metadata select', function () {
+	var id   = $(this).attr('data-id');	//console.log($(this));
+    var data = [
+        {name: 'id', value: id},
+        {name: 'fileLang', value: app.language.current.code}
+    ];
+	$(this).closest('.metadata').find('input, textarea, select').each(function () {
+		var val = null
+		if($(this).hasClass('select2')) {
+			val = $(this).select2('val');
+		} else {
+			val = this.value;
+		}
+		data.push({name: $(this).attr('data-field'), value: val});
+	});
+	clearTimeout(timeoutIds_<?php echo $type; ?>[id]);
+	timeoutIds_<?php echo $type; ?>[id] = setTimeout(function() {
+		ajaxMessage = '<?php echo translate('Информацията е обновена'); ?>';
+		$.post('<?php echo route_reset('admin', ['module' => 'files', 'controller' => 'index', 'action' => 'update-file']); ?>', data, function () {});
+		updateTags();
+	}, 500);
+});
+
+$('#<?php echo $type; ?>-gallery').on('click', '.updateFile', function () {
+
+	var tr = $(this).closest('tr');
+	var input = tr.find('input');
+	var textarea = tr.find('textarea');
+
+	var data = {
+		id: $(this).attr('data-id'),
+		name: input.val(),
+		content: textarea.val(),
+		fileLang: '<?php echo app('current_language')->getCode(); ?>'
+	};
+
+	ajaxMessage = '<?php echo translate('Информацията е обновена'); ?>';
+	$.post('<?php echo route_reset('admin', ['module' => 'files', 'controller' => 'index', 'action' => 'update-file']); ?>', data, function () {
+
+		updateTags();
+
+	});
+
+	return false;
+});
+
+
+if ($.fn.tagsinput) {
+    $('.tagsinput').tagsinput({
+    	focusClass: 'tagsinput-focus-class'
+    })
+}
+
+$(document).on('click','.bootstrap-tagsinput span' , function() {
+
+	var tag =  $(this).text();
+
+	if($(this).hasClass('active')) {
+		$('.bootstrap-tagsinput span').removeClass('active');
+		tag = '';
+	} else {
+		$('.bootstrap-tagsinput span').removeClass('active');
+		$(this).addClass('active');
+	}
+
+	var formData = new FormData();
+
+	formData.append('tag' , tag);
+	formData.append('type', '<?php echo $type; ?>');
+	formData.append('target', '<?php echo $this->item->getTarget(); ?>');
+	formData.append('targetId', '<?php echo $this->item->getTargetId(); ?>');
+	formData.append('settings', JSON.stringify(<?php echo json_encode($this->item->getFileSettings()); ?>));
+    $.ajax({
+	        url: '<?php echo route('admin', ['module' => 'files', 'controller' => 'index', 'action' => 'filter-tags']); ?>',
+	        type: 'POST',
+	        data: formData,
+	        processData: false,
+	        contentType: false,
+	        success: function (res) {
+	            if (res) {
+	                $('#<?php echo $type; ?>-ajaxGalleryFiles').html(res);
+	                makeTableSortable_<?php echo $type; ?>();
+	              	updateTags();
+	            }
+	        },
+	        error: function (xhr) {
+				//alert(xhr.responseText);
+	        }
+	   });
+});
+
+$(".tagsinput").on('itemAdded', function(event) {
+	var data = {
+			'target' : '<?php echo $this->item->getTarget(); ?>',
+			'targetId' : '<?php echo $this->item->getTargetId(); ?>',
+			'tags' : $(".tagsinput").tagsinput('items')
+	}
+	$.post('<?php echo route_reset('admin', ['module' => 'files', 'controller' => 'index', 'action' => 'add-tags']); ?>', data , function () {
+      $('.fileTags').append($('<option>', {
+          value: event.item,
+          text : event.item
+        }));
+        $('.fileTags').trigger('change');
+	});
+
+});
+
+$(".tagsinput").on('itemRemoved', function(event) {
+	var data = {
+			'target' : '<?php echo $this->item->getTarget(); ?>',
+			'targetId' : '<?php echo $this->item->getTargetId(); ?>',
+			'tags' : $(".tagsinput").tagsinput('items')
+	}
+	$.post('<?php echo route_reset('admin', ['module' => 'files', 'controller' => 'index', 'action' => 'add-tags']); ?>', data , function () {
+		 $('.fileTags').find('[value="'+event.item+'"]').remove();
+		 $('.fileTags').trigger('select2:unselect');
+	});
+
+});
+
+function makeTableSortable_<?php echo $type; ?>()
+{
+    $("#<?php echo $type; ?>-ajaxGalleryFiles table tbody").sortable({
+    	handle: '.handle',
+    	axis: 'y',
+    	placeholder: "ui-state-highlight",
+        helper: function(e, ui) {
+            ui.children().each(function() {
+                $(this).width($(this).width());
+            });
+            return ui;
+        },
+        update: function (event, ui) {
+        	if (this !== ui.item.parent()[0]) {
+            	return;
+        	}
+            var data = $(this).sortable('serialize');
+            ajaxMessage = '<?php echo translate('Файловете са подредени'); ?>';
+            $.post('<?php echo route_reset('admin', ['module' => 'files', 'controller' => 'index', 'action' => 'reorder-files']); ?>', data, function () {}).error(function () {
+				window.location.reload(true);
+            });
+        }
+    });
+}
+function updateTags() {
+	  $(".select2").select2();
+
+}
+</script>
+<?php $this->stop(); ?>

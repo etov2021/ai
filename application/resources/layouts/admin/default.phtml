@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="bg">
+	<head>
+		<title><?php echo translate('СОФИ') . ' - ' . $this->renderSection('title', (isset($this->metaRoute) && isset($this->metaRoute['title']) ? $this->metaRoute['title'] : translate('Начало'))); ?></title>
+		<?php echo $this->render('layouts/admin/includes/_head'); ?>
+	</head>
+	<body data-sidebar="dark">
+		<div id="layout-wrapper">
+    		<script>
+    		if (typeof(Storage) !== undefined) {
+    			if (window.sessionStorage.getItem('minified') == 1) {
+    				var body = document.getElementsByTagName("BODY")[0];
+    				body.classList.add('minified');
+    			}
+    		}
+    		</script>
+    		<?php
+                echo $this->render('layouts/admin/includes/_header');
+    			echo $this->render('layouts/admin/includes/_nav');
+    		?>
+			<div class="main-content">
+    			<div class="page-content">
+                    <div class="container-fluid">
+                    	<?php echo $this->render('layouts/admin/includes/_breadcrumbs'); ?>
+
+            			<?php
+            				echo $this->renderSection('content');
+            			?>
+    				</div>
+    			</div>
+    			
+    			<?php echo $this->render('layouts/admin/includes/_footer'); ?>
+			</div>
+		</div>
+		<?php echo $this->render('layouts/admin/includes/_footer-scripts'); ?>
+	</body>
+</html>

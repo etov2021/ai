@@ -1,0 +1,53 @@
+<?php
+
+$label = translate($this->item->getId() ? 'Редактиране' : 'Добавяне');
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label)
+     ;
+
+$params = app('request')->getParams();
+
+$this->hookToMenu('admin.main', 'admin.' . str_replace('-', '.', $params['module']) . '.' . str_replace('-', '.', $params['controller']), $label);
+
+$currentUrl = server_url(route());
+
+?>
+<div class="row">
+	<div class="col-md-12">
+		<h1 class="page-title txt-color-blueDark">
+			<i class="fa fa-pencil-square-o fa-fw "></i>
+			<?php echo $label; ?>
+		</h1>
+	</div>
+</div>
+<div class="tabs">
+	<ul>
+		<li>
+			<a href="<?php echo $currentUrl; ?>#tabs-form"><?php echo translate('Категория'); ?></a>
+		</li>
+	<?php if ($this->item->getId()) : ?>
+		<li>
+			<a href="<?php echo $currentUrl; ?>#tabs-meta"><?php echo translate('Мета информация'); ?></a>
+		</li>
+	<?php endif; ?>
+	<?php if ($this->hasPermissions && $this->item->getId()) : ?>
+		<li>
+			<a href="<?php echo $currentUrl; ?>#tabs-permissions"><?php echo translate('Достъпи'); ?></a>
+		</li>
+	<?php endif; ?>
+	</ul>
+	<div id="tabs-form">
+		<?php echo $this->render('admin/categories/_form'); ?>
+	</div>
+<?php if ($this->item->getId()) : ?>
+	<div id="tabs-meta">
+		<?php echo $this->render('admin::tab/_meta'); ?>
+	</div>
+<?php endif; ?>
+<?php if ($this->hasPermissions && $this->item->getId()) : ?>
+	<div id="tabs-permissions">
+		<?php echo $this->render('admin::tab/_permissions'); ?>
+	</div>
+<?php endif; ?>
+</div>

@@ -1,0 +1,30 @@
+<?php
+
+$label = translate('Access Token');
+
+$this->extend('shared::layouts/admin/default')
+->section('title', $label);
+
+?>
+
+<div class="row">
+	<div class="col-md-12">
+		<h1 class="page-title txt-color-blueDark">
+			<i class="fa fa-table fa-fw "></i>
+			<?php echo $label; ?>
+		</h1>
+	</div>
+</div>
+<div class="row">
+	<div class="col-md-4">
+		<textarea style="resize: none;" class="accessToken form-control" rows="5" readonly onclick="this.focus(); this.select();"><?php echo $this->token; ?></textarea>
+    </div>
+</div>
+<?php $this->start('scripts'); ?>
+<script>
+$(function () {
+	$('textarea.accessToken').focus();
+	$('textarea.accessToken').select();
+});
+</script>
+<?php $this->stop(); ?>

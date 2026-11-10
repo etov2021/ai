@@ -1,0 +1,79 @@
+<ol class="dd-list">
+<?php
+try {
+    $languages = app('languages');
+} catch (\Exception $e) {
+    $languages = [];
+}
+$currentDomain = app('domain', true);
+if ($currentDomain && $currentDomain->getLanguages()) {
+    $domainLanguages = explode(',', $currentDomain->getLanguages());
+    $reordered = [];
+    foreach ($domainLanguages as $domainLanguageId) {
+        foreach ($languages as $languageCode => $language) {
+            if ($language->getId() == $domainLanguageId) {
+                $reordered[$languageCode] = $language;
+                break;
+            }
+        }
+    }
+    $languages = $reordered;
+}
+foreach ($this->items as $item) :
+    $translations = $item['translations'];
+    $url = $item['url'];
+    if (empty($url)) {
+        $route = $item['route'];
+        $routeData = $item['routeData'] ? \json_decode($item['routeData'], \true) : [];
+        if ($item['qsaData']) {
+            $qsaData = [];
+            \parse_str($item['qsaData'], $qsaData);
+            $routeData = \array_merge($routeData, $qsaData);
+        }
+        try {
+            $url = route($route, $routeData, ($item['reset'] ? true : false), true, true);
+            $baseUrl = base_url();
+            if (!empty($baseUrl) && $baseUrl !== '/') {
+                $url = preg_replace('~^' . $baseUrl . '~ius', '', $url);
+            }
+            if (empty($url)) {
+                $url = '/';
+            }
+        } catch (Exception $e) {
+            $url = $e->getMessage();
+        }
+    }
+?>
+    <li class="dd-item dd3-item" data-id="<?php echo $item['id']; ?>">
+        <div class="dd-handle dd3-handle">&nbsp;</div>
+        <div class="dd3-content row">
+            <div class="col-md-6">
+            	<?php
+                foreach ($languages as $language) :
+                    if ($language instanceof Micro\Translator\Language\LanguageInterface) :
+                        $bit = $translations & pow(2, $language->getId() - 1);
+                        echo '<span style="padding-right: 5px;' . ($bit ? '' : ' opacity: 0.3') . '"><a href="' . route(null, [Micro\Application\Controller\Crud::CURRENT_LANG_KEY => $language->getCode(), 'id' => $item['id'], 'action' => 'add-item']) . '"><img src="templates/admin/images/blank.gif" class="flag flag-' . $language->getLocale() . '" alt="' . $language->getName() . '"></a></span>';
+                    endif;
+                endforeach;
+                ?>
+                <?php echo $item['name']; ?>
+            <?php if ($item['alias']) : ?>
+                (<strong><?php echo $item['alias']; ?></strong>)
+            <?php endif; ?>
+            </div>
+            <div class="col-md-6 text-end">
+                <span style="padding-right: 5px;" title="<?php echo translate('Адрес'); ?>"><?php echo $url; ?></span>
+                <span style="padding-right: 5px;" title="<?php echo translate('Видимост'); ?>"><?php echo $item['visible'] ? '<span class="fa fa-check"></span>' : '<span class="fa fa-ban"></span>'; ?></span>
+                <span style="padding-right: 5px;" title="<?php echo translate('Активност'); ?>"><?php echo $item['active'] ? '<span class="fa fa-check"></span>' : '<span class="fa fa-ban"></span>'; ?></span>
+                <a href="<?php echo route_reset('admin', array('module' => 'navigation', 'controller' => 'index', 'action' => 'copy', 'id' => $item['id'])); ?>" class="mdi mdi-content-copy"> </a>
+                <a href="<?php echo route(\null, array('action' => 'delete-item', 'id' => $item['id'])); ?>" class="remove mdi mdi-delete-forever"> </a>
+            </div>
+        </div>
+    <?php
+    if (!empty($item['children'])) :
+        echo $this->partial('admin/index/_nestable', array('items' => $item['children']));
+    endif;
+    ?>
+    </li>
+<?php endforeach; ?>
+</ol>

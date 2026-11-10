@@ -1,0 +1,62 @@
+<?php
+
+$menu  = $this->helper('Navigation')->navigation('admin.main')->findAllBy('active', 1);
+$label = !empty($menu) ? end($menu)->getLabel() : '';
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label)
+     ;
+
+?>
+<div class="row">
+	<div class="col-md-12">
+		<div class="card">
+    		<div class="card-body">
+        		<h2 class="mb-4">
+        			<i class="mdi mdi-face-profile"></i>
+        			<?php echo $label; ?>
+        		</h2>
+                <div class="row">
+                    <div class="col-md-12">
+                        <form class="form-horizontal filter" action="<?php echo route(); ?>" method="post">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <?php echo $this->form->names->renderLabel(); ?>
+                                    <?php echo $this->form->names; ?>
+                                </div>
+                                <div class="col-md-6">
+                                    <?php echo $this->form->email->renderLabel(); ?>
+                                    <?php echo $this->form->email; ?>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                            	<div class="col-md-12">
+                                	<?php echo $this->form->filter; ?>
+                                	<?php echo $this->form->reset; ?>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                	<div class="col-md-12 table-responsive">
+                        <?php echo $this->grid; ?>
+                    </div>
+                </div>
+        	</div>
+        </div>
+	</div>
+</div>
+<?php $this->start('scripts'); ?>
+<script>
+$('.kill-session').on('click', function () {
+	var url = $(this).attr('href');
+	smart.confirm('Сигурни ли сте, че искате да приключите сесията на този потребител?', function (yes) {
+		if (yes) {
+			window.location.href = url;
+		}
+	});
+	return false;
+});
+</script>
+<?php $this->stop(); ?>

@@ -1,0 +1,69 @@
+<?php
+use Micro\Router\Route;
+?>
+<div style="background-color: #f2f2f2; padding: 10px; border: 1px solid #ddd;">
+    <?php
+    if (!empty($this->navigationData)) :
+        foreach ($this->navigationData as $variable) :
+    ?>
+        <div class="form-group">
+            <div class="col-md-12">
+                <label style="padding: 5px 0"><?php echo (isset($variable['label']) ? $variable['label'] : ucfirst($variable['field'])); ?></label>
+            <?php if (is_array($variable['value'])) : ?>
+                <select class="form-control select2" name="routeData[<?php echo $variable['field']; ?>]"><?php echo build_options($variable['value'], (isset($this->routeData[$variable['field']]) ? $this->routeData[$variable['field']] : '')); ?></select>
+            <?php else: ?>
+                <input type="text" class="form-control" name="routeData[<?php echo $variable['field']; ?>]" value="<?php echo (isset($this->routeData[$variable['field']]) ? $this->routeData[$variable['field']] : ''); ?>" />
+            <?php endif; ?>
+            </div>
+        </div>
+        <?php echo (isset($variable['js']) ? $variable['js'] : ''); ?>
+    <?php
+        endforeach;
+    elseif ($this->route) :
+        $params = array_keys($this->route->getParams());
+        $conditions = $this->route->getConditions();
+        $optionals = $this->route->getOptionals();
+        foreach ($params as $key) :
+            $placeholder = '';
+            if (isset($optionals[$key])) :
+                $placeholder = translate('--- optional ---');
+            endif;
+        ?>
+        <div class="form-group">
+            <div class="col-md-12">
+                <label style="padding: 5px 0"><?php echo $key; ?> (<?php echo isset($conditions[$key]) ? $conditions[$key] : Route::CONDITION; ?>)</label>
+                <input type="text" class="form-control" data-element="<?php echo $key; ?>" data-condition="<?php echo escape(isset($conditions[$key]) ? $conditions[$key] : Route::CONDITION); ?>" data-required="<?php echo isset($optionals[$key]) ? 0 : 1; ?>" name="routeData[<?php echo $key; ?>]" placeholder="<?php echo $placeholder; ?>" value="<?php echo (isset($this->routeData[$key]) ? $this->routeData[$key] : ''); ?>" />
+                <span class="routeData-<?php echo $key; ?>-element-error element-error"></span>
+            </div>
+        </div>
+        <?php endforeach; ?>
+    <?php endif; ?>
+    <div class="form-group">
+        <div class="col-md-12">
+            <label style="padding: 5px 0"><?php echo translate('Query string'); ?></label>
+            <input type="text" class="form-control" name="qsaData" placeholder="<?php echo translate('--- optional ---'); ?>" value="<?php echo (isset($this->qsaData) ? $this->qsaData : ''); ?>" />
+        </div>
+    </div>
+<?php if ($this->navigationHelperClass) : ?>
+    <div class="form-group" style="margin-bottom: 10px">
+        <div class="col-md-12">
+            <?php echo $this->navigationHelperClass; ?>
+        <?php if ($this->navigationHelper) : ?>
+            (<strong style="color: green"><?php echo translate('Да'); ?></strong>)
+        <?php else: ?>
+            (<strong style="color: red"><?php echo translate('Не'); ?></strong>)
+        <?php endif; ?>
+        </div>
+    </div>
+<?php endif; ?>
+    <div style="padding-bottom: 5px;">
+    	<strong><?php echo $this->route->getPattern(); ?></strong>
+	</div>
+</div>
+<script>
+if ($ && $.fn && $.fn.select2 && app && app.language) {
+	$(".select2").select2({
+		language: app.language.ui.code
+	});
+}
+</script>

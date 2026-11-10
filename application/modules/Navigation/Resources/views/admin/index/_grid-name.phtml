@@ -1,0 +1,7 @@
+<?php
+
+if (is_allowed('Navigation\Controller\Admin\Index@edit')) {
+    echo '<a href="' . route(null, ['action' => 'edit', 'id' => $this->item['id']]) . '">' . $this->value . '</a>';
+} else {
+    echo $this->value;
+}

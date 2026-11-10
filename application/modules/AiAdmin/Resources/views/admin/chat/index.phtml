@@ -1,0 +1,49 @@
+<?php
+
+$label = 'AI - Тестов чат';
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label);
+
+?>
+<div class="row">
+	<div class="col-12">
+		<div class="card">
+			<div class="card-body">
+				<h2 class="mb-4"><i class="fa fa-comments fa-fw"></i> <?php echo escape($label); ?></h2>
+				<p>
+					<a class="btn btn-default" href="<?php echo escape($this->homeUrl); ?>">Назад</a>
+					<a class="btn btn-default" href="<?php echo escape($this->newUrl); ?>">Нов разговор</a>
+				</p>
+
+				<?php foreach ($this->messages as $message) : ?>
+					<div class="mb-3 p-3 border rounded<?php echo $message->role->value === 'user' ? ' bg-light' : ''; ?>">
+						<strong><?php echo $message->role->value === 'user' ? 'Вие' : escape($this->agent ? $this->agent->name : 'Агент'); ?></strong>
+						<div style="white-space: pre-wrap"><?php echo escape($message->content); ?></div>
+					</div>
+				<?php endforeach; ?>
+
+				<form class="form-horizontal" action="<?php echo route(); ?>" method="post" autocomplete="off">
+					<?php echo $this->form->csrf; ?>
+					<?php if ($this->agent) : ?>
+						<p class="text-muted">Агент: <?php echo escape($this->agent->name); ?> (<?php echo escape($this->agent->providerCode . ' / ' . $this->agent->model); ?>)</p>
+					<?php else : ?>
+						<div class="row mb-3">
+							<div class="col-md-4">
+								<?php echo $this->form->agent->renderLabel(); ?>
+								<?php echo $this->form->agent; ?>
+							</div>
+						</div>
+					<?php endif; ?>
+					<div class="row mb-3">
+						<div class="col-md-12">
+							<?php echo $this->form->message->renderLabel(); ?>
+							<?php echo $this->form->message; ?>
+						</div>
+					</div>
+					<?php echo $this->form->btnSend; ?>
+				</form>
+			</div>
+		</div>
+	</div>
+</div>

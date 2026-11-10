@@ -1,0 +1,55 @@
+<?php
+
+$label = translate($this->item->getId() ? 'Редактиране' : 'Добавяне');
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label)
+     ;
+
+$this->hookToMenu('admin.main', 'admin.languages', $label);
+
+?>
+<div class="row">
+	<div class="col-12">
+		<div class="card">
+			<div class="card-body">
+        		<h2 class="mb-4">
+        			<i class="mdi mdi-language-xaml"></i>
+        			<?php echo $label; ?>
+        		</h2>
+                <form class="form-horizontal" action="<?php echo route(); ?>" method="post" enctype="multipart/form-data">
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <?php echo $this->form->name->renderLabel(); ?>
+                            <?php echo $this->form->name; ?>
+                        </div>
+                        <div class="col-md-4">
+                            <?php echo $this->form->code->renderLabel(); ?>
+                            <?php echo $this->form->code; ?>
+                        </div>
+                        <div class="col-md-4">
+                            <?php echo $this->form->locale->renderLabel(); ?>
+                            <?php echo $this->form->locale; ?>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                		<div class="col-md-12">
+                			<label class="checkbox-inline">
+                				<?php echo $this->form->active; ?>
+                				<?php echo $this->form->active->getLabel(); ?>
+                			</label>
+                		</div>
+                	</div>
+                    <div class="mt-3">
+                        <?php echo $this->form->btnSave; ?>
+                        <?php echo $this->form->btnApply; ?>
+                        <?php echo $this->form->btnBack; ?>
+                    </div>
+                </form>
+        
+        	</div>
+        </div>
+
+	</div>
+</div>

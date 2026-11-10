@@ -1,0 +1,59 @@
+<?php
+
+use Navigation\View\Helper\Navigation;
+use Micro\Navigation\Page\AbstractPage;
+
+$found = [];
+foreach (Navigation::getMenus(null, function ($alias) { return preg_match('~^admin.~', $alias); }) as $menu) {
+    $found = $menu->findAllBy('active', 1);
+    if (!empty($found)) {
+        break;
+    }
+}
+
+$buff = '';
+$isHome = false;
+$current = null;
+
+if (!empty($found)) {
+    $found = end($found);
+    $current = $found;
+    $pages = [];
+    $cnt = 0;
+    $buff = '';
+    do {
+        if ($found->getAlias() === 'admin.home') :
+            $isHome = true;
+        endif;
+        $pages[] = $found;
+        $found = $found->getParent();
+        $cnt++;
+    } while ($found instanceof AbstractPage);
+    foreach (array_reverse($pages) as $k => $page) {
+        if ($cnt > $k + 1) {
+            $buff .= '<li class="breadcrumb-item"><a href="' . $page->getHref() . '">' . $page->getLabel() . '</a></li>';
+        } else {
+            $buff .= '<li class="breadcrumb-item active">' . $page->getLabel() . '</li>';
+        }
+    }
+}
+?>
+<div class="row">
+    <div class="col-12">
+        <div class="page-title-box d-sm-flex align-items-center justify-content-between card flex-sm-row border-0">
+            
+
+            <div class="page-title-right">
+                <ol class="breadcrumb m-0">
+                	<?php if (!$isHome) : ?>
+                		<li class="breadcrumb-item"><a href="<?php echo route_reset('admin'); ?>"><?php echo translate('Начало'); ?></a>
+                	<?php endif; ?>
+            		<?php echo $buff; ?>
+                </ol>
+            </div>
+			<a id="globalFileManager" title="File manager" target="_blank" href="js/plugins/filemanager/dialog.php?&type=0&view=0&relative_url=1&lang=bg_BG" >
+        		<span class="btn btn-ribbon hidden-xs" data-title="Файлов менаджер"><i class="fa  fa-folder-open"></i></span>
+        	</a>
+        </div>
+    </div>
+</div>

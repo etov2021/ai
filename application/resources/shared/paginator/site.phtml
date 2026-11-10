@@ -1,0 +1,30 @@
+<?php
+if ($this->pages->pageCount <= 1) : return; endif;
+?>
+<nav>
+    <ul class="pagination justify-content-end" style="margin-bottom: 0px;">
+    <?php if (isset($this->pages->previous)) : ?>
+        <li class="page-item">
+            <a class="page-link waves-effect" data-page="<?php echo $this->pages->previous; ?>" href="<?php echo route(null, array('page' => $this->pages->previous)); ?>" aria-label="<?php echo translate('Предишна'); ?>">
+                <span aria-hidden="true">«</span>
+                <span class="sr-only"><?php echo translate('Предишна'); ?></span>
+            </a>
+        </li>
+    <?php endif; ?>
+<?php foreach ($this->pages->pagesInRange as $page) : ?>
+    <?php if ($page == $this->pages->current) : ?>
+        <li class="page-item active"><a class="page-link waves-effect" data-page="<?php echo $page; ?>" href="<?php echo route(null, array('page' => $page)); ?>"><?php echo $page; ?></a></li>
+    <?php else : ?>
+    	<li class="page-item"><a class="page-link waves-effect" data-page="<?php echo $page; ?>" href="<?php echo route(null, array('page' => $page)); ?>"><?php echo $page; ?></a></li>
+    <?php endif; ?>
+<?php endforeach; ?>
+    <?php if (isset($this->pages->next)) : ?>
+        <li class="page-item">
+            <a class="page-link" data-page="<?php echo $this->pages->next; ?>" href="<?php echo route(null, array('page' => $this->pages->next)); ?>" aria-label="<?php echo translate('Следваща'); ?>">
+                <span aria-hidden="true">»</span>
+                <span class="sr-only"><?php echo translate('Следваща'); ?></span>
+            </a>
+        </li>
+    <?php endif; ?>
+    </ul>
+</nav>

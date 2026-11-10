@@ -1,0 +1,209 @@
+<?php
+
+use Files\Entity\FileInterface;
+use Files\Table\Files;
+use Micro\Application\Utils;
+use Procurements\Model\Entity\Procurement;
+use Procurements\Model\Table\Contracts;
+
+$req = app('request');
+$module = $req->getAttribute('module');
+$controller = $req->getAttribute('controller');
+
+$template = 'admin/' . $controller . '/preview';
+
+if ($this->templateExists($template)) {
+    echo $this->render($template);
+    return;
+}
+
+$resource = ucfirst(Utils::camelize($module)) . '\\Controller\\Admin\\' . ucfirst(Utils::camelize($controller));
+
+$hasQuestions = $this->templateExists('admin::questions/_questions') && is_allowed($resource . '@ajaxAddQuestion');
+
+$hasRelations = false;
+if ($this->item instanceof Procurement) {
+    $hasRelations = true;
+}
+
+$label = translate('Преглед');
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label)
+     ;
+
+$this->hookToMenu('admin.main', 'admin.' . $module . ($controller == 'index' || $controller == $module ? '' : '.' . str_replace('-', '.', $controller)), $label);
+
+$currentUrl = server_url(route());
+
+?>
+<div class="row">
+	<div class="col-md-12">
+		<div class="card">
+    		<div class="card-body">
+        		<h2 class="mb-4">
+        			<i class="mdi mdi-clipboard-outline"></i>
+        			<?php echo $label; ?>
+        		</h2>
+                <div>
+                	<ul class="nav nav-tabs nav-tabs-custom nav-justified" role="tablist">
+                		<li class="nav-item"><a href="<?php echo $currentUrl; ?>#tabs-form" class="nav-link active" data-bs-toggle="tab" role="tab"><?php echo translate('Данни'); ?></a></li>
+                	<?php if ($hasQuestions) : ?>
+                		<li  class="nav-item" id="faq"><a href="<?php echo $currentUrl; ?>#tabs-questions" class="nav-link" data-bs-toggle="tab" role="tab"><?php echo translate('Въпроси и отговори'); ?></a></li>
+                	<?php endif; ?>
+                	<?php if ($hasRelations) : ?>
+                		<li  class="nav-item" id="relations"><a href="<?php echo $currentUrl; ?>#tabs-relations" class="nav-link" data-bs-toggle="tab" role="tab"><?php echo translate('Свързани ОТП'); ?></a></li>
+                	<?php endif; ?>
+                	</ul>
+                	<div class="tab-content p-3 rounded-bottom mt-5">
+                    	<div id="tabs-form" class="tab-pane active" role="tabpanel">
+                            <form class="form-horizontal" action="<?php echo route(); ?>" method="post" enctype="multipart/form-data">
+                                <div class="row">
+                                	<div class="col-md-12">
+                                		<div style="margin-bottom: 15px" class="text-right">
+                                		<?php if (is_allowed($resource . '@edit')) : ?>
+                                        	<input type="submit" name="btnEdit" value="<?php echo translate('Редактиране'); ?>" class="btn btn-primary">
+                                    	<?php endif; ?>
+                                        	<?php echo $this->form->btnBack; ?>
+                                    	</div>
+                                    	<div class="table-responsive">
+                                        	<table class="table table-bordered copyble">
+                                            <?php
+                                            foreach ($this->form->getElements() as $el) :
+                                                $value = $el->getValue();
+                                                switch (get_class($el)) {
+                                                    case 'Micro\\Form\\Element\\Text':
+                                                    case 'Micro\\Form\\Element\\Textarea':
+                                                        break;
+                                                    case 'Micro\\Form\\Element\\Url':
+                                                        $value = '<a href="' . $value . '" target="_blank">' . $value . '</a>';
+                                                        break;
+                                                    case 'Micro\\Form\\Element\\Select':
+                                                    case 'Micro\\Form\\Element\\Radio':
+                                                        $options = $el->getMultiOptions();
+                                                        $selectValue = $value;
+                                                        if (!is_array($selectValue)) {
+                                                            $selectValue = [$selectValue];
+                                                        }
+                                                        $tmp = [];
+                                                        foreach ($selectValue as $sv) {
+                                                            if (isset($options[$sv])) {
+                                                                $tmp[] = $options[$sv];
+                                                            } else if ($sv) {
+                                                                $tmp[] = '#' . $sv;
+                                                            }
+                                                        }
+                                                        $value = implode(', ', $tmp);
+                                                        break;
+                                                    case 'Micro\\Form\\Element\\Datetime':
+                                                        if ($value instanceof Datetime) {
+                                                            $value = $value->format($el->getFormat());
+                                                        }
+                                                        break;
+                                                    case 'Micro\\Form\\Element\\Checkbox':
+                                                        $value = $value ? translate('Да') : translate('Не');
+                                                        break;
+                                                    default:
+                                                        continue 2;
+                                                }
+                                                if (empty($value)) {
+                                                    continue;
+                                                }
+                                                $class = $el->getClass();
+                                                $copyble = true;
+                                                if (preg_match('/not\-copyble/', $class)) {
+                                                    $copyble = false;
+                                                }
+                                                if ($value && in_array($el->getName(), ['price', 'budget', 'budgetDocs'])) {
+                                                    $value = get_formated_price($value);
+                                                }
+                                            ?>
+                                        		<tr>
+                                                    <th style="width: 200px;"><?php echo $el->getLabel(); ?></th>
+                                                    <td class="<?php echo $copyble ? 'copyble' : 'not-copyble'; ?>"><?php echo $value; ?></td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                    	<?php
+                                    	if ($this->item instanceof FileInterface) :
+                                    	   $target = $this->item->getTarget();
+                                    	   $files = (new Files())->getTargetsTable($target);
+                                    	   if (isset($files[$target]) && isset($files[$target][$this->item->getTargetId()])) {
+                                    	       $files = $files[$target][$this->item->getTargetId()];
+                                    	       foreach ($files as $type => $fs) {
+                                    	           echo '<tr>';
+                                    	           echo '<th>' . translate('File type ' . $type) . '</th>';
+                                    	           echo '<td class="not-copyble">';
+                                    	           foreach ($fs as $f) {
+                                    	               echo '<div style="margin-bottom: 5px;"><a href="' . route_reset('file-download', ['hash' => $f['hash']]) . '" target="_blank">' . $f['name'] . '</a></div>';
+                                    	           }
+                                    	           echo '</td>';
+                                    	           echo '</tr>';
+                                    	       }
+                                    	   }
+                                    	endif;
+                                    	if (isset($this->item['siteData'])) {
+                                    	    $siteData = json_decode($this->item['siteData'], true);
+                                    	    if ($siteData) {
+                                    	        foreach ($siteData as $k => $v) {
+                                        	        if (in_array($k, ['OpeningOfOffersDate', 'OpeningOfPricesDate'])) {
+                                            	        if ($v) {
+                                                	        try {
+                                                	            $d = new Datetime($v);
+                                                	            $v = $d->format('d.m.Y H:i (l)');
+                                                	        } catch (Throwable $e) {}
+                                            	        }
+                                        	        }
+                                    	        ?>
+                                            		<tr>
+                                            			<th><?php echo translate($k); ?></th>
+                                            			<td><?php echo $v; ?></td>
+                                            		</tr>
+                                        		<?php
+                                    	        }
+                                    	    }
+                                    	}
+                                    	if (isset($this->item['contracts'])) {
+                                            $contracts = (new Contracts())->getContracts($this->item['id']);
+                                            if (!empty($contracts)) {
+                                                $tmp = '';
+                                                foreach ($contracts as $contract) {
+                                                    $tmp .= '<div style="margin-bottom: 10px;">
+                                                        <strong>' . translate('Фирма изпълнител') . '</strong>: ' . implode(', ', $contract['companies']) . '' . ($contract['automatic'] ? ' <span style="color: red;">(' . translate('автоматично от сайта на ЕОП') . ')</span>' : '') . '<br />
+                                                        ' . ($contract['isLot'] ? '<strong>' . translate('Лот') . '</strong>: #' . $contract['lotNumber'].  '. ' . $contract['lotName'] : '') . '
+                                                        <strong>' . translate('Дата на сключване на договора') . '</strong>: ' . ($contract['dateStart'] ? (new \Datetime($contract['dateStart']))->format('d.m.Y') : '') . '<br />
+                                                        <strong>' . translate('Срок за изпълнение по договор') . '</strong>: ' . $contract['deadline'] . '<br />
+                                                        <strong>' . translate('Цена по договор') . '</strong>: ' . get_formated_price($contract['budget'], '-') . '<br />
+                                                        ' . ($contract['comment'] ? '<strong>' . translate('Коментар') . '</strong>: ' . $contract['comment'] : '') . '
+                                                    </div>';
+                                                }
+                                                echo '
+                                                    <tr>
+                                            			<th>' . translate('Сключени договори') . '</th>
+                                            			<td>' . $tmp . '</td>
+                                            		</tr>
+                                                ';
+                                            }
+                                    	}
+                                    	?>
+                                    		</table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    <?php if ($hasQuestions) : ?>
+                        <div id="tabs-questions" class="tab-pane" role="tabpanel">
+                    		<?php echo $this->render('admin::questions/_questions'); ?>
+                    	</div>
+                    <?php endif; ?>
+                    <?php if ($hasRelations) : ?>
+                        <div id="tabs-relations" class="tab-pane" role="tabpanel">
+                    		<?php echo $this->render('admin/_relations'); ?>
+                    	</div>
+                    <?php endif; ?>
+                    </div>
+                </div>
+        	</div>
+        </div>
+	</div>
+</div>

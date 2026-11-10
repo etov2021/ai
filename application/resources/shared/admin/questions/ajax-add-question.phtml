@@ -1,0 +1,38 @@
+<form class="form-horizontal" action="<?php echo route(); ?>" method="post" enctype="multipart/form-data">
+	<div class="row">
+		<div class="col-md-12">
+			<label class="form-label"><?php echo translate('Статус'); ?></label>
+			<select name="status" class="form-control select2">
+				<?php echo build_options($this->statuses, ($this->post['status'] ?? '')); ?>
+			</select>
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-md-12">
+			<label><?php echo translate('Въпрос'); ?></label>
+			<textarea name="text" class="form-control" rows="5"><?php echo ($this->post['text'] ?? ''); ?></textarea>
+		<?php if (isset($this->errors['text'])) : ?>
+			<span class="element-error"><?php echo $this->errors['text']; ?></span>
+		<?php endif; ?>
+		</div>
+	</div>
+	<div class="row mb-3">
+		<div class="col-md-12">
+			<label class="form-label"><?php echo translate('Въпрос до'); ?></label>
+			<select name="toUserId[]" class="form-control select2" multiple>
+				<?php echo build_options($this->users, ($this->post['toUserId'] ?? [])); ?>
+			</select>
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-md-12 text-end">
+			<button class="btn btn-primary" data-handler="add-question" data-url="<?php echo route('admin', ['action' => 'ajax-add-question', 'questionId' => $this->questionId]); ?>"><?php echo translate($this->questionId ? 'Редактиране' : 'Добавяне'); ?></button>
+		</div>
+	</div>
+</form>
+<script>
+$('select.select2').select2({
+	language: app.language.ui.code,
+	dropdownParent: $('#questionsModal')
+});
+</script>

@@ -1,0 +1,59 @@
+<?php
+
+use Micro\Auth\Auth;
+use UserManagement\Model\Entity\User;
+
+$this->extend('shared::layouts/admin/login');
+
+$auth = Auth::getInstance()->getIdentity();
+
+if (!config('auth.2fa') || empty($auth) || !isset($auth['user']) || !$auth['user'] instanceof User) :
+    return;
+endif;
+
+if ($auth['user']->getAuth2fa() != 'google') :
+    return;
+endif;
+
+$defaultValue = '';
+
+?>
+<div class="row">
+	<div class="col-12 col-sm-12 col-md-12 col-lg-12">
+		<div class="well no-padding">
+			<form action="<?php echo route('admin-login2'); ?>" method="post" id="login-form" class="smart-form client-form">
+				<header class="text-center">
+					<strong><?php echo translate('Ауторизация с Google Authenticator'); ?></strong>
+				</header>
+				<fieldset>
+				<?php foreach (flash()->getMessages() as $message) : ?>
+                	<div class="alert alert-<?php echo $message['type']; ?>" role="alert"><?php echo translate($message['message']); ?></div>
+            	<?php endforeach; ?>
+					<section>
+						<label class="label"><?php echo translate('Въведи код за достъп'); ?></label>
+						<label class="input">
+							<input type="text" name="code" class="form-control" value="<?php echo isset($this->data['code']) ? $this->data['code'] : $defaultValue; ?>" />
+						</label>
+					</section>
+					<input type="submit" name="btnLogin" value="<?php echo translate('Вход'); ?>" class="btn btn-primary btn2">
+					<input type="submit" name="btnBack" value="<?php echo translate('Назад'); ?>" class="btn btn-default btn2">
+				</fieldset>
+			</form>
+		</div>
+	</div>
+</div>
+<?php $this->start('styles'); ?>
+<style>
+.container {
+    max-width: 380px;
+}
+.btn2 {
+	float: right;
+	margin: 0 0 10px 5px;
+    height: 31px;
+    padding: 0 22px;
+    font: 300 15px/29px 'Open Sans',Helvetica,Arial,sans-serif;
+    cursor: pointer;
+}
+</style>
+<?php $this->stop(); ?>

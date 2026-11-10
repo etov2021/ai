@@ -1,0 +1,74 @@
+<?php
+
+$data = json_decode($this->value, true);
+
+if (empty($data)) {
+    return;
+}
+
+if (isset($data['ORIGINAL_DATA'])) {
+    $originalData = $data['ORIGINAL_DATA'];
+    unset($data['ORIGINAL_DATA']);
+    /* $data = [
+        'before' => ['ENTITY' => $data['ENTITY'], 'EVENT' => $data['EVENT']] + $originalData,
+        'after' => $data,
+    ]; */
+}
+
+if (!function_exists('doOutputList')) {
+    function doOutputList($tree) {
+        $buff = '<ul style="margin: 0; padding: 0 0 0 15px;">';
+        foreach($tree as $k => $v) {
+            $buff .= '<li>';
+            $buff .= "<strong>" . $k . "</strong>: ";
+            if (is_array($v)) {
+                $buff .= doOutputList($v);
+            } else {
+                if (is_null($v)) {
+                    $buff .= 'NULL';
+                } else if (is_scalar($v)) {
+                    $buff .= strip_tags($v);
+                } else {
+                    $buff .= json_encode($v);
+                }
+            }
+            $buff .= '</li>';
+        }
+        $buff .= '</ul>';
+        return $buff;
+    }
+}
+
+?>
+
+<span data-toggle="modal" data-target="#myModal-<?php echo $this->item['id']; ?>" style="cursor: pointer;" class="fa fa-info-circle" onclick="$(this).next().toggle();"></span>
+<div style="text-align: left;" id="myModal-<?php echo $this->item['id']; ?>" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-body" style="overflow: auto; max-height: 600px;">
+                <?php
+                if (is_array($data) && isset($data['before']) && isset($data['after'])) {
+                    echo '<table class="table table-bordered">
+                        <tr>
+                            <th>' . translate('Before') . '</th>
+                            <th>' . translate('After') . '</th>
+                        </tr>
+                        <tr>
+                            <td>' . doOutputList($data['before']) . '</td>
+                            <td>' . doOutputList($data['after']) . '</td>
+                        </tr>
+                    </table>';
+                } else {
+                    //echo highlight_string("<?php " . var_export($data, true), true);
+                    echo doOutputList($data);
+                }
+                ?>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo translate('Затвори'); ?></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+

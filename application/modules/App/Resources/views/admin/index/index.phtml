@@ -1,0 +1,80 @@
+<?php
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', translate('Начало'))
+     ;
+
+$domain   = app('domain', true);
+$domainId = $domain ? $domain->getId() : 0;
+
+if ($domainId) :
+?>
+<div class="row">
+	<div class="col-md-3">
+    <?php
+    $rows     = 0;
+    $navItems = $this->helper('Navigation')->navigation('admin.main', $domainId);
+    $navPages = $navItems->getPages();
+    $count = ceil(count($navPages) / 4);
+    foreach ($navPages as $item) :
+        if (!$item->isVisible() || !$item->isAllowed()) {
+            continue;
+        }
+        $href = $item->getHref();
+        $hasPages = false;
+        foreach ($item->getPages(true) as $testPage) {
+            if ($testPage->isVisible() && $testPage->isAllowed()) {
+                $hasPages = true;
+                break;
+            }
+        }
+        if ($hasPages === false && $href === '#') {
+            continue;
+        }
+        if ($rows && $rows % $count === 0) {
+            echo '</div><div class="col-md-3">';
+        }
+    ?>
+	<div class="row">
+        <div class="col-md-12">
+        	<div class="panel panel-default">
+                <div class="panel-body">
+                <?php if ($hasPages) : ?>
+                	<strong><?php echo $item->getLabel(); ?></strong>
+                	<?php if ($item->getTextDomain()) : ?>
+                		<br><em><?php echo $item->getTextDomain(); ?></em>
+                	<?php endif; ?>
+                	<ul style="padding: 10px 0 0 18px; margin: 0">
+                	<?php
+                	foreach ($item->getPages(true) as $subPage) :
+                    	if (!$subPage->isVisible() || !$subPage->isAllowed()) {
+                    	    continue;
+                    	}
+                	?>
+                		<li>
+                			<a href="<?php echo $subPage->getHref(); ?>"><?php echo $subPage->getLabel(); ?></a>
+                			<?php if ($subPage->getTextDomain()) : ?>
+                        		<br><em><?php echo $subPage->getTextDomain(); ?></em>
+                        	<?php endif; ?>
+            			</li>
+                	<?php endforeach; ?>
+                	</ul>
+                <?php else : ?>
+                	<a href="<?php echo $item->getHref(); ?>"><?php echo $item->getLabel(); ?></a>
+            		<?php if ($item->getTextDomain()) : ?>
+                		<br><em><?php echo $item->getTextDomain(); ?></em>
+                	<?php endif; ?>
+                <?php endif; ?>
+    			</div>
+    		</div>
+        </div>
+    </div>
+    <?php
+        $rows++;
+    endforeach;
+    ?>
+	</div>
+</div>
+<?php
+endif;
+?>

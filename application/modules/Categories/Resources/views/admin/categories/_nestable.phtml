@@ -1,0 +1,52 @@
+<ol class="dd-list">
+<?php
+try {
+    $languages = app('languages');
+} catch (\Exception $e) {
+    $languages = [];
+}
+$currentDomain = app('domain', true);
+if ($currentDomain && $currentDomain->getLanguages()) {
+    $domainLanguages = explode(',', $currentDomain->getLanguages());
+    $reordered = [];
+    foreach ($domainLanguages as $domainLanguageId) {
+        foreach ($languages as $languageCode => $language) {
+            if ($language->getId() == $domainLanguageId) {
+                $reordered[$languageCode] = $language;
+                break;
+            }
+        }
+    }
+    $languages = $reordered;
+}
+foreach ($this->items as $item) :
+    $translations = $item['translations'];
+?>
+    <li class="dd-item dd3-item" data-id="<?php echo $item['id']; ?>">
+        <div class="dd-handle dd3-handle">&nbsp;</div>
+        <div class="dd3-content row">
+            <div class="col-md-8">
+            	<?php
+                foreach ($languages as $language) :
+                    if ($language instanceof Micro\Translator\Language\LanguageInterface) :
+                        $bit = $translations & pow(2, $language->getId() - 1);
+                        echo '<span style="padding-right: 5px;' . ($bit ? '' : ' opacity: 0.3') . '"><a href="' . route(null, [Micro\Application\Controller\Crud::CURRENT_LANG_KEY => $language->getCode(), 'id' => $item['id'], 'action' => 'edit']) . '"><img src="templates/admin/images/blank.gif" class="flag flag-' . $language->getLocale() . '" alt="' . $language->getName() . '"></a></span>';
+                    endif;
+                endforeach;
+                ?>
+                <?php echo $item['name']; ?>
+            </div>
+            <div class="text-right">
+            	<?php echo $item['alias']; ?>
+                <?php echo $item['active'] ? '<span class="fa fa-check"></span>' : '<span class="fa fa-ban"></span>'; ?>
+                <a href="<?php echo route(\null, array('action' => 'delete', 'id' => $item['id'])); ?>" class="remove glyphicon glyphicon-trash"> </a>
+            </div>
+        </div>
+    <?php
+    if (!empty($item['children'])) :
+        echo $this->partial('admin/categories/_nestable', array('items' => $item['children']));
+    endif;
+    ?>
+    </li>
+<?php endforeach; ?>
+</ol>

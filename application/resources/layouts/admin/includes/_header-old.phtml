@@ -1,0 +1,148 @@
+<!-- HEADER -->
+<header id="header">
+    <div id="top-menu" class="hidden-xs">
+    	<a href="">
+            <img src="templates/admin/img/icygen-logo3.svg" alt="Софтуерна Компания/ Софтуер по поръчка" class="logo-title">
+        </a>
+
+    </div>
+    <div class="pull-right">
+		<?php
+		$identity = identity();
+		if ($identity) :
+		?>
+		<div id="hide-menu" class="btn-header pull-right hidden-md hidden-lg">
+			<span> <a href="javascript:void(0);" data-action="toggleMenu" title="Collapse Menu"><i class="fa fa-reorder"></i></a> </span>
+		</div>
+		<ul class="header-dropdown-list hidden-xs">
+            <li>
+                <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+                    <?php //echo $identity->getEmail(); ?>
+                    <span class="fa fa-user"></span>
+                    <i class="fa fa-angle-down"></i>
+                </a>
+                <ul class="dropdown-menu pull-right">
+                	<li>
+                		<div class="padding-10">
+                			<?php echo $identity->getFirstName(); ?> <?php echo $identity->getMiddleName(); ?> <?php echo $identity->getLastName(); ?>
+                			<br />
+                			<small><?php echo $identity->getEmail(); ?></small>
+            			</div>
+                	</li>
+                	<li class="divider"></li>
+                    <li>
+                        <a class="padding-10 padding-top-5 padding-bottom-5" href="<?php echo route_reset('admin', ['module' => 'user-management', 'controller' => 'users', 'action' => 'profile']); ?>">
+                            <i class="fa fa-user"></i> <?php echo translate('Профил'); ?>
+                        </a>
+                    </li>
+					<li class="divider"></li>
+                    <li>
+                        <a href="<?php echo route_reset('admin-logout'); ?>" class="padding-10 padding-top-5 padding-bottom-5">
+                            <i class="fa fa-sign-out fa-lg"></i> <strong><?php echo translate('Изход'); ?></strong>
+                        </a>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+		<?php endif; ?>
+		<ul class="faq header-dropdown-list">
+			<?php echo $this->partial('admin::questions/_faq'); ?>
+		</ul>
+		<ul class="faq header-dropdown-list">
+			<?php echo $this->partial('admin::questions/_faq', ['questionsToMe' => true]); ?>
+		</ul>
+		<ul class="faq header-dropdown-list">
+			<?php echo $this->partial('admin::questions/_faq', ['questionsFromMe' => true]); ?>
+		</ul>
+	<?php if (is_debug()) : ?>
+    	<?php
+        $siteLanguages = app('languages', true);
+        $currentLanguage = app('language', true);
+        $currentDomain = app('domain', true);
+        $domainLanguages = $currentDomain && $currentDomain->getLanguages() ? explode(',', $currentDomain->getLanguages()) : [];
+        if (!empty($domainLanguages)) :
+            $reordered = [];
+            foreach ($domainLanguages as $domainLanguageId) {
+                foreach ($siteLanguages as $languageCode => $language) {
+                    if ($language->getId() == $domainLanguageId) {
+                        $reordered[$languageCode] = $language;
+                        break;
+                    }
+                }
+            }
+            $siteLanguages = $reordered;
+        endif;
+    	?>
+    	<!-- <ul class="header-dropdown-list hidden-xs">
+    		<li>
+    			<a href="#" class="dropdown-toggle" data-toggle="dropdown"> <img src="templates/admin/img/blank.gif" class="flag flag-<?php echo $currentLanguage->getLocale(); ?>" alt="<?php echo $currentLanguage->getName(); ?>"> <span> <?php echo $currentLanguage->getName(); ?> </span> <i class="fa fa-angle-down"></i> </a>
+    			<ul class="dropdown-menu pull-right">
+    			<?php foreach ($siteLanguages as $language) : ?>
+    				<li class="<?php echo ($language->getId() == $currentLanguage->getId() ? 'active' : 'not-active'); ?>">
+    					<a href="<?php echo route('admin', ['lang' => $language->getCode()]); ?>"><img src="templates/admin/img/blank.gif" class="flag flag-<?php echo $language->getLocale(); ?>" alt="<?php echo $language->getName(); ?>"> <?php echo $language->getName(); ?></a>
+    				</li>
+				<?php endforeach; ?>
+    			</ul>
+    		</li>
+    	</ul> -->
+	<?php endif; ?>
+		<?php
+		if (is_debug() && $currentDomain) :
+		  $domains = (new Domains\Model\Domains())->fetchCachedPairs(null, null, ['id' => 'asc']);
+		?>
+    	<!-- <ul class="header-dropdown-list hidden-xs">
+    		<li>
+    			<a href="#" class="dropdown-toggle" data-toggle="dropdown"><span><?php echo $currentDomain->getName(); ?> </span> <i class="fa fa-angle-down"></i> </a>
+    			<ul class="dropdown-menu pull-right">
+    			<?php foreach ($domains as $domainId => $domainName) : ?>
+    				<li class="<?php echo ($domainId == $currentDomain->getId() ? 'active' : 'not-active'); ?>">
+    					<a href="<?php echo route('admin', ['module' => 'domains', 'action' => 'change-domain', 'id' => $domainId, 'ref' => route(null, ['lang' => null], false, true, true)], true); ?>"><?php echo $domainName; ?></a>
+    				</li>
+				<?php endforeach; ?>
+    			</ul>
+    		</li>
+    	</ul> -->
+		<?php endif;  ?>
+    </div>
+    <!-- end pulled right: nav area -->
+</header>
+<!-- END HEADER -->
+<?php $this->start('scripts'); ?>
+<script>
+$(function () {
+	var params = {};
+    window.location.hash.substring(1).split('&').map(hk => {
+		let temp = hk.split('=');
+		if (temp[0]) {
+        	params[temp[0]] = temp[1];
+		}
+    });
+    if (params._tab) {
+    	var _getTab = params._tab.split('.');
+    	if (_getTab[0]) {
+    		$('li#' + _getTab[0] + ' a').trigger('click');
+    		if (_getTab[1]) {
+        		var el = $('tr[data-id="' + _getTab[1] + '"]');
+        		if (el.length) {
+        			el.effect('highlight', {}, 3000, function () {});
+        		}
+    		}
+    		history.pushState("", document.title, window.location.pathname + window.location.search);
+    		//window.location.hash = '';
+    		//history.pushState('', '', '<?php echo route(null, ['_tab' => null]); ?>');
+    	}
+    }
+});
+$(document).on('click', '.faq .dropdown-menu', function (e) {
+	e.stopPropagation();
+});
+$(function () {
+	$('.faq-tabs ul li a').each(function () {
+	    var current = $(this).attr('href');
+	    var n = current.indexOf('#');
+	    $(this).attr('href', window.location.href + current.substr(n));
+	});
+	$('.faq-tabs').tabs();
+});
+</script>
+<?php $this->stop(); ?>

@@ -1,0 +1,33 @@
+<?php
+
+$label = 'AI - Импорт на модели от Ollama';
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label);
+
+?>
+<div class="row">
+	<div class="col-12">
+		<div class="card">
+			<div class="card-body">
+				<h2 class="mb-4"><i class="fa fa-download fa-fw"></i> <?php echo escape($label); ?></h2>
+				<?php if (!$this->hasOllama) : ?>
+					<p class="text-muted">Няма активен доставчик от тип Ollama. Създайте го от „Доставчици".</p>
+				<?php else : ?>
+					<p>Взима списъка на изтеглените модели от Ollama (<code>ollama list</code>) и ги добавя с цена 0. Съществуващите модели не се променят.</p>
+					<form class="form-horizontal" action="<?php echo route(); ?>" method="post" autocomplete="off">
+						<?php echo $this->form->csrf; ?>
+						<div class="row mb-3">
+							<div class="col-md-4">
+								<?php echo $this->form->provider->renderLabel(); ?>
+								<?php echo $this->form->provider; ?>
+							</div>
+						</div>
+						<?php echo $this->form->btnImport; ?>
+					</form>
+				<?php endif; ?>
+				<p class="mt-3"><a class="btn btn-default" href="<?php echo escape($this->backUrl); ?>">Назад</a></p>
+			</div>
+		</div>
+	</div>
+</div>

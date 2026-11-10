@@ -1,0 +1,71 @@
+<style>
+.debug-bar {
+	text-align: right;
+    margin: 0 auto;
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    background-color: #fff;
+    width: 100%;
+    height: auto;
+    z-index: 9999;
+    font-family: "Courier New",monospace;
+    background-color: #ccc;
+    padding: 5px;
+}
+.debug-bar h1 {
+    font-size: 1em;
+    margin: 0;
+	font-family: "Courier New",monospace;
+}
+.debug-bar .debug-item {
+    display: inline-block;
+	position: relative;
+	text-align: left;
+    cursor: default;
+    background-color: #ddd;
+    padding: 0 5px;
+    margin-right: 5px;
+    border: 1px solid #000;
+}
+.debug-bar .debug-item ul {
+    padding-left: 15px;
+}
+.debug-bar .debug-item.empty {
+    border: 0;
+    background-color: inherit;
+}
+.debug-bar .debug-item:not(.empty):hover {
+    background-color: #ccc;
+}
+.debug-bar .debug-item:not(.empty):hover pre {
+    display: block;
+    padding: 9.5px;
+    margin: 0 0 10px;
+    font-size: 13px;
+    line-height: 1.42857143;
+    color: #333;
+    word-break: break-all;
+    word-wrap: break-word;
+    background-color: #f5f5f5;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+.debug-bar .debug-item:not(.empty) pre {
+    display: none;
+    position: absolute;
+    bottom: 4px;
+	right: 0;
+    max-height: 300px;
+    max-width: 800px;
+    overflow: scroll;
+}
+.debug-bar .debug-query {
+    background-color: #ddd;
+    padding: 5px;
+    margin-top: 5px;
+    font-size: 0.9em;
+	max-width: 100%;
+	overflow-x: auto;
+}
+</style>

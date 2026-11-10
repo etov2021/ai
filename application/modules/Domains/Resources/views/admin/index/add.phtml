@@ -1,0 +1,77 @@
+<?php
+
+$label = translate($this->item->getId() ? 'Редактиране' : 'Добавяне');
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label)
+     ;
+
+$this->hookToMenu('admin.main', 'admin.domains', $label);
+
+?>
+<div class="row">
+	<div class="col-md-12">
+		<h1 class="page-title txt-color-blueDark">
+			<i class="fa fa-pencil-square-o fa-fw "></i>
+			<?php echo $label; ?>
+		</h1>
+	</div>
+</div>
+<form class="form-horizontal" action="<?php echo route(); ?>" method="post" enctype="multipart/form-data">
+    <div class="text-right" style="margin-bottom: 15px">
+        <?php echo $this->form->btnSave; ?>
+        <?php echo $this->form->btnApply; ?>
+        <?php echo $this->form->btnBack; ?>
+    </div>
+    <div class="panel panel-default">
+        <div class="panel-body">
+            <div class="form-group">
+                <div class="col-md-1">
+                    <?php echo $this->form->protocol->renderLabel(); ?>
+                    <?php echo $this->form->protocol; ?>
+                </div>
+                <div class="col-md-5">
+                    <?php echo $this->form->name->renderLabel(); ?>
+                    <?php echo $this->form->name; ?>
+                </div>
+                <div class="col-md-3">
+                    <?php echo $this->form->countryCode->renderLabel(); ?>
+                    <?php echo $this->form->countryCode; ?>
+                </div>
+                <div class="col-md-3">
+                    <?php echo $this->form->template->renderLabel(); ?>
+                    <?php echo $this->form->template; ?>
+                </div>
+            </div>
+            <div class="form-group">
+            	<div class="col-md-6">
+                    <?php echo $this->form->addresses->renderLabel(); ?>
+                    <?php echo $this->form->addresses; ?>
+                </div>
+                <div class="col-md-3">
+                    <?php echo $this->form->defaultLanguage->renderLabel(); ?>
+                    <?php echo $this->form->defaultLanguage; ?>
+                </div>
+                <div class="col-md-3">
+                    <?php echo $this->form->languages->renderLabel(); ?>
+                    <?php echo $this->form->languages; ?>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="col-md-6">
+                    <?php echo $this->form->header->renderLabel(); ?>
+                    <?php echo $this->form->header; ?>
+                </div>
+                <div class="col-md-6">
+                    <?php echo $this->form->footer->renderLabel(); ?>
+                    <?php echo $this->form->footer; ?>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="text-right">
+        <?php echo $this->form->btnSave; ?>
+        <?php echo $this->form->btnApply; ?>
+        <?php echo $this->form->btnBack; ?>
+    </div>
+</form>

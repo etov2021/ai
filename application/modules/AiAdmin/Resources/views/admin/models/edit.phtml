@@ -1,0 +1,67 @@
+<?php
+
+$label = ($this->item ? 'AI - Модел: ' . $this->item->model : 'AI - Нов модел') . ' (' . $this->provider->name . ')';
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label);
+
+?>
+<div class="row">
+	<div class="col-12">
+		<div class="card">
+			<div class="card-body">
+				<h2 class="mb-4"><i class="fa fa-cubes fa-fw"></i> <?php echo escape($label); ?></h2>
+				<form class="form-horizontal" action="<?php echo route(); ?>" method="post" autocomplete="off">
+					<?php echo $this->form->csrf; ?>
+					<div class="row mb-3">
+						<?php if (!$this->item) : ?>
+						<div class="col-md-6">
+							<?php echo $this->form->model->renderLabel(); ?>
+							<?php echo $this->form->model; ?>
+						</div>
+						<?php endif; ?>
+						<div class="col-md-6">
+							<?php echo $this->form->label->renderLabel(); ?>
+							<?php echo $this->form->label; ?>
+						</div>
+					</div>
+					<div class="row mb-3">
+						<div class="col-md-3">
+							<?php echo $this->form->inputPricePerMillion->renderLabel(); ?>
+							<?php echo $this->form->inputPricePerMillion; ?>
+						</div>
+						<div class="col-md-3">
+							<?php echo $this->form->outputPricePerMillion->renderLabel(); ?>
+							<?php echo $this->form->outputPricePerMillion; ?>
+						</div>
+						<div class="col-md-3">
+							<?php echo $this->form->contextWindow->renderLabel(); ?>
+							<?php echo $this->form->contextWindow; ?>
+						</div>
+						<div class="col-md-3">
+							<?php echo $this->form->maxOutputTokens->renderLabel(); ?>
+							<?php echo $this->form->maxOutputTokens; ?>
+						</div>
+					</div>
+					<div class="row mb-3">
+						<div class="col-md-12">
+							<label class="checkbox-inline">
+								<?php echo $this->form->supportsTools; ?>
+								<?php echo $this->form->supportsTools->getLabel(); ?>
+							</label>
+							<label class="checkbox-inline">
+								<?php echo $this->form->active; ?>
+								<?php echo $this->form->active->getLabel(); ?>
+							</label>
+						</div>
+					</div>
+					<div class="mt-3">
+						<?php echo $this->form->btnSave; ?>
+						<?php echo $this->form->btnApply; ?>
+						<?php echo $this->form->btnBack; ?>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+</div>

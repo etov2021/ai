@@ -1,0 +1,118 @@
+<?php
+
+
+$label  = $this->menu->getName();
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label)
+     ;
+
+$this->hookToMenu('admin.main', 'admin.navigation', $label);
+
+?>
+<div class="row">
+	<div class="col-12">
+		<div class="card">
+			<div class="card-body">
+        		<h2 class="mb-4">
+        			<i class="fa fa-table fa-fw "></i>
+        			<?php echo $label; ?>
+        		</h2>
+        
+                <form action="<?php echo route(); ?>" method="post">
+                <?php if (!empty($this->items)) : ?>
+
+                    <div class="row mt-3">
+                    	<div class="col-md-12">
+                            <div class="dd" style="max-width: 100%; margin-bottom: 20px;" id="nestable3">
+                                <?php echo $this->partial('admin/index/_nestable', array('items' => $this->items)); ?>
+                            </div>
+                        </div>
+                    </div>
+                <?php endif; ?>
+                    <div class="row">
+                    	<div class="col-md-12">
+                            <input type="submit" class="btn btn-success" name="btnAdd" value="<?php echo translate('Добавяне'); ?>" />
+                            <input type="submit" class="btn btn-default" name="btnBack" value="<?php echo translate('Назад'); ?>" />
+                        </div>
+                    </div>
+                </form>
+                <div id="modal" class="modal fade" role="dialog">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-body" style="overflow: auto; max-height: 600px;">
+                				<form>
+                					<div class="form-group">
+                						<label><?php echo translate('Към меню'); ?></label>
+                						<select class="form-control">
+                    					<?php
+                    					$menus = [];
+                    					$domains = (new Domains\Model\Domains())->fetchCachedPairs();
+                    					foreach (app('db')->fetchAll('SELECT * FROM Menu') as $menu) {
+                    					    $domain = $domains[$menu['domainId']];
+                    					    if (!isset($menus[$domain])) {
+                    					        $menus[$domain] = [];
+                                            }
+                                            $menus[$domain][$menu['id']] = $menu['name'];
+                    					}
+                    					echo build_options($menus, 0, 'Select', '', true);
+                    					?>
+                						</select>
+                					</div>
+                					<button class="btn btn-primary" data-handler="copy"><?php echo translate('Копиране'); ?></button>
+                				</form>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-default" data-dismiss="modal"><?php echo translate('Затвори'); ?></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+        	</div>
+        </div>
+	</div>
+</div>
+<?php $this->start('scripts'); ?>
+<script src="templates/admin/libs/jquery-nestable/jquery.nestable.min.js"></script>
+<script>
+var tree = $('#nestable3');
+tree.nestable({
+	expandBtnHTML: '',
+	collapseBtnHTML: ''
+});
+var oldData = JSON.stringify(tree.nestable('serialize'));
+tree.on('change', function() {
+	var data = JSON.stringify(tree.nestable('serialize'));
+	if (data === oldData) {
+		return;
+	}
+	ajaxMessage = app.translate('Елементите са подредени');
+	$.post('<?php echo route(\null, array('action' => 'ajax-set-order')); ?>', {data: data}, function () {
+		oldData = data;
+	}, 'json').always(function () {
+
+	});
+});
+$('.copy').on('click', function () {
+	try {
+		$('#modal').data('copyUrl', $(this).attr('href'));
+		$('#modal').modal();
+	} catch (e) {
+		console.log(e)
+	}
+	return false;
+});
+$('[data-handler="copy"]').on('click', function () {
+	var val = $.trim($(this).closest('form').find('select').val());
+	if (val !== '') {
+		$('#modal .modal-body').block();
+    	$.post($('#modal').data('copyUrl'), {toMenuId: val, menuId: <?php echo (int) $this->menu['id']; ?>}, function () {
+			window.location.reload(true);
+    	}, 'json').always(function () {
+    		$('#modal .modal-body').unblock();
+    	});
+	}
+	return false;
+});
+</script>
+<?php $this->stop(); ?>

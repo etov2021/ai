@@ -1,0 +1,19 @@
+<span class="ribbon-button-alignment pull-right">
+	<a id="globalFileManager" title="File manager" target="_blank" href="js/plugins/filemanager/dialog.php?&type=0&view=0&relative_url=1&lang=bg_BG" >
+		<span class="btn btn-ribbon hidden-xs" data-title="Файлов менаджер"><i class="fa  fa-folder-open"></i></span>
+	</a>
+</span>
+<div id="globalFileManagerDialog"></div>
+<div id="globalSolrPreviewDialog" style="display: none">
+    <form class="meta form-horizontal" method="post" enctype="multipart/form-data">
+    	<div class="col-md-10">
+            <input type="text" name="solrSearchQuery" id="solrSearchQuery" class="form-control" placeholder="<?php echo translate('Заявка на търсенето'); ?>" />
+         </div>
+        <div class="col-md-2">
+           <div class="text-left">
+           		<input type="button" class="btn btn-primary" data-url="<?php echo route_reset('admin', ['module' => 'search', 'controller' => 'index', 'action' => 'index']); ?>" name="solrSearchBtn" id="solrSearchBtn" class="form-control" value="<?php echo translate("Преглед");?>" />
+            </div>
+         </div>
+    </form>
+    <div class="col-md-12" id="solrSearchItems"></div>
+</div>

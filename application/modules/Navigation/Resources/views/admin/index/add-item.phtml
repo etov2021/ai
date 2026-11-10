@@ -1,0 +1,203 @@
+<?php
+
+
+$label  = $this->menu->getName() .' / ' ;
+
+if ($this->item->getId()) {
+    $label .= translate('Редактиране на ') . $this->item->getName();
+} else {
+    $label .= translate('Добавяне на елемент');
+}
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label)
+     ;
+
+$this->hookToMenu('admin.main', 'admin.navigation', $label);
+
+?>
+<div class="row">
+	<div class="col-12">
+		<div class="card">
+			<div class="card-body">
+    			<h2 class="mb-4"><i class="fa fa-table fa-fw "></i> <?php echo $label; ?></h2>
+    
+                <form class="form-horizontal" action="<?php echo route(); ?>" method="post" enctype="multipart/form-data">
+                    <div class="row">
+                        <div class="col-md-9">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <?php echo $this->form->name->renderLabel(); ?>
+                                    <?php echo $this->form->name; ?>
+                                </div>
+                                <div class="col-md-6">
+                                    <?php echo $this->form->alias->renderLabel(); ?>
+                                    <?php echo $this->form->alias; ?>
+                                    <input type="hidden" name="id" value="<?php echo $this->item['id']; ?>" />
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-12">
+                                    <?php echo $this->form->description->renderLabel(); ?>
+                                    <?php echo $this->form->description; ?>
+                                </div>
+                            </div>
+                            <div class="row mb-3" style="display: none;">
+                            	<div class="col-md-6">
+                                <?php
+                                    echo $this->partial('admin::_file', [
+                                        'form' => $this->form,
+                                        'item' => $this->item,
+                                        'type' => 'image'
+                                    ]);
+                                ?>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-12">
+                                    <?php echo $this->form->url->renderLabel(); ?>
+                                    <?php echo $this->form->url; ?>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-12">
+                                    <?php echo $this->form->route->renderLabel(); ?>
+                                    <?php echo $this->form->route; ?>
+                                </div>
+                            </div>
+                            <div id="routeData"></div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="row mb-3">
+                                <div class="col-md-12">
+                                    <?php echo $this->form->active; ?>
+                                    <?php echo $this->form->active->getLabel(); ?>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-12">
+                                    <?php echo $this->form->visible; ?>
+                                    <?php echo $this->form->visible->getLabel(); ?>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-12">
+                                    <?php echo $this->form->reset; ?>
+                                    <?php echo $this->form->reset->getLabel(); ?>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-12">
+                                    <?php echo $this->form->targetBlank; ?>
+                                    <?php echo $this->form->targetBlank->getLabel(); ?>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-12">
+                                    <?php echo $this->form->class->renderLabel(); ?>
+                                    <?php echo $this->form->class; ?>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-12">
+                                    <?php echo $this->form->parentId->renderLabel(); ?>
+                                    <?php echo $this->form->parentId; ?>
+                                </div>
+                            </div>
+                            <div class="row mb-3" style="display: none;">
+                                <div class="col-md-12">
+                                    <?php echo $this->form->handlerId->renderLabel(); ?>
+                                    <?php echo $this->form->handlerId; ?>
+                                </div>
+                            </div>
+                            <div class="row mb-3" style="margin-bottom: 0; display: none;">
+                                <div class="col-md-12">
+        							<?php echo $this->form->handlerPosition; ?>
+                                    <label style="display: inline; margin: 0;"><?php echo $this->form->handlerPosition->getLabel(); ?></label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <?php echo $this->form->btnSave; ?>
+                        <?php echo $this->form->btnApply; ?>
+                        <?php echo $this->form->btnBack; ?>
+                        <?php echo $this->form->btnDeleteTranslation; ?>
+                    </div>
+                </form>
+    		</div>
+    	</div>
+    </div>
+</div>
+<?php $this->start('scripts'); ?>
+<script>
+
+$('#route').on('change', function (e, routeData, qsaData) {
+
+	if ($.trim($(this).val()) === '') {
+	    $('#routeData').html('');
+	    return true;
+	}
+
+	if (typeof routeData === 'undefined') {
+		routeData = '[]';
+	}
+
+	if (typeof qsaData === 'undefined') {
+		qsaData = '';
+	}
+
+    $.post('<?php echo route(\null, array('action' => 'ajax-get-route-data')); ?>', {route: $(this).val(), routeData: routeData, qsaData: qsaData}, function (res) {
+        $('#routeData').html(res);
+    });
+});
+
+if ($('#route').val()) {
+	$('#route').trigger('change', ['<?php echo ($this->item->getRouteData() ? $this->item->getRouteData() : '[]'); ?>', '<?php echo $this->item->getQsaData(); ?>']);
+}
+
+$('[name="btnSave"], [name="btnApply"]').on('click', function () {
+
+	if ($('#routeData').children().length) {
+
+		var errors = {};
+
+		$('#routeData [data-element]').each(function () {
+
+			var key = $(this).attr('data-element');
+			var val = $.trim($(this).val());
+
+			if (errors[key]) {
+				delete errors[key];
+			}
+
+			if ($(this).attr('data-required') == "1") {
+				if (val == '') {
+					errors[key] = '<?php echo translate('Полето е задължително'); ?>';
+				}
+			}
+
+			if ($(this).attr('data-condition') && val != '') {
+				var re = new RegExp('^' + $(this).attr('data-condition') + '$');
+				if (re.exec(val) == null) {
+					errors[key] = '<?php echo translate('Невалидна стойност'); ?>';
+				}
+			}
+
+			var errorElement = $('#routeData .routeData-' + key + '-element-error');
+
+			if (errors[key]) {
+				errorElement.html(errors[key]);
+			} else {
+				errorElement.html("");
+			}
+
+		});
+
+		if (Object.keys(errors).length) {
+			return false;
+		}
+	}
+});
+</script>
+<?php $this->stop(); ?>

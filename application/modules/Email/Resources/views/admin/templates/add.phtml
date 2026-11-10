@@ -1,0 +1,97 @@
+<?php
+
+$label = translate($this->item->getId() ? 'Редактиране' : 'Добавяне');
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label)
+     ;
+
+$this->hookToMenu('admin.main', 'admin.email.templates', $label);
+
+?>
+<div class="row">
+	<div class="col-12">
+		<div class="card">
+			<div class="card-body">
+        		<h2 class="mb-4">
+        			<i class="mdi mdi-email"></i>
+        			<?php echo $label; ?>
+        		</h2>
+                <form class="form-horizontal" action="<?php echo route(); ?>" method="post" enctype="multipart/form-data">
+                    <div class="row">
+                        <div class="col-md-10">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <?php echo $this->form->subject->renderLabel(); ?>
+                                    <?php echo $this->form->subject; ?>
+                                </div>
+                                <div class="col-md-6">
+                                    <?php echo $this->form->alias->renderLabel(); ?>
+                                    <?php echo $this->form->alias; ?>
+                                    <input type="hidden" name="id" value="<?php echo $this->item['id']; ?>" />
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+        						<div class="col-md-12">
+        							<?php echo $this->form->description->renderLabel(); ?>
+        							<div>
+                        				<label class="nolang">
+                        					<?php echo $this->form->descriptionIsEditor; ?>
+                            				<strong><?php echo translate('HTML редактор'); ?></strong>
+                        				</label>
+                        			</div>
+        							<?php echo $this->form->description; ?>
+        						</div>
+        					</div>
+        					<div class="row mb-3">
+        						<div class="col-md-12">
+        							<label class="checkbox-inline">
+                    					<?php echo $this->form->active; ?>
+                    					<?php echo $this->form->active->getLabel(); ?>
+                					</label>
+        						</div>
+        					</div>
+                        </div>
+                          <div class="col-md-2">
+                  			<div class="row mb-3">
+        						<div class="col-md-12">
+                        			<?php echo $this->form->testEmails->renderLabel(); ?>
+        							<?php echo $this->form->testEmails; ?>
+                    			</div>
+                        	</div>
+                        	<div class="row mb-3">
+        						<div class="col-md-12">
+                        			<?php echo $this->form->btnSend; ?>
+                    			</div>
+                        	</div>
+                          </div>
+                    </div>
+                    <div class="mt-3">
+                        <?php echo $this->form->btnSave; ?>
+                        <?php echo $this->form->btnApply; ?>
+                        <?php echo $this->form->btnBack; ?>
+                        <?php echo $this->form->btnDeleteTranslation; ?>
+                    </div>
+                </form>
+        
+        	</div>
+        </div>
+
+	</div>
+</div>
+<?php $this->start('scripts'); ?>
+<script>
+$('.toggleTinymce').on('click', function () {
+	var el = $("#" + $(this).data('content-id'));
+	if (el.is(':visible')) {
+		if ($.fn.tinymce) {
+			el.tinymce(tinymceConfig);
+		}
+	} else {
+		if ($.fn.tinymce) {
+			el.tinymce().remove();
+		}
+	}
+});
+</script>
+<?php $this->stop(); ?>

@@ -1,0 +1,82 @@
+<?php
+
+$label = 'AI - Използване и логове';
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label);
+
+$money = static fn ($v) => number_format((float) $v, 4, '.', ' ');
+
+$summary = function (string $title, array $rows, array $names = []) use ($money) {
+    ?>
+	<h5 class="mt-3"><?php echo escape($title); ?></h5>
+	<table class="table table-sm table-striped">
+		<thead><tr><th>Обект</th><th>Заявки</th><th>Вход (токени)</th><th>Изход (токени)</th><th>Разход (EUR)</th></tr></thead>
+		<tbody>
+		<?php foreach ($rows as $r) : ?>
+			<tr>
+				<td><?php echo escape($names[$r['key']] ?? $r['key']); ?></td>
+				<td><?php echo (int) $r['requests']; ?></td>
+				<td><?php echo (int) $r['inputTokens']; ?></td>
+				<td><?php echo (int) $r['outputTokens']; ?></td>
+				<td><?php echo escape($money($r['cost'])); ?></td>
+			</tr>
+		<?php endforeach; ?>
+		<?php if (empty($rows)) : ?>
+			<tr><td colspan="5" class="text-muted">Няма данни.</td></tr>
+		<?php endif; ?>
+		</tbody>
+	</table>
+	<?php
+};
+
+?>
+<div class="row">
+	<div class="col-12">
+		<div class="card">
+			<div class="card-body">
+				<h2 class="mb-4"><i class="fa fa-bar-chart fa-fw"></i> <?php echo escape($label); ?></h2>
+				<p><a class="btn btn-default" href="<?php echo escape($this->homeUrl); ?>">Назад</a></p>
+
+				<div class="row">
+					<?php foreach ($this->periods as $title => $data) : ?>
+						<div class="col-md-6">
+							<h4><?php echo escape($title); ?></h4>
+							<?php $summary('По агент', $data['agents'], $this->agentNames); ?>
+							<?php $summary('По доставчик', $data['providers']); ?>
+						</div>
+					<?php endforeach; ?>
+				</div>
+
+				<h4 class="mt-4">Последни 100 записа</h4>
+				<div class="table-responsive">
+					<table class="table table-sm table-striped">
+						<thead>
+							<tr><th>Време</th><th>Вид</th><th>Статус</th><th>Доставчик / Модел</th><th>Инструмент</th><th>Стъпка</th><th>Вход</th><th>Изход</th><th>EUR</th><th>мс</th><th>Грешка / бележка</th></tr>
+						</thead>
+						<tbody>
+						<?php foreach ($this->logs as $log) : ?>
+							<tr<?php echo in_array($log['status'], ['error', 'rejected'], true) ? ' class="table-danger"' : ($log['status'] === 'warning' ? ' class="table-warning"' : ''); ?>>
+								<td><?php echo escape($log['created']); ?></td>
+								<td><?php echo escape($log['kind']); ?></td>
+								<td><?php echo escape($log['status']); ?></td>
+								<td><?php echo escape(trim($log['providerCode'] . ' / ' . $log['model'], ' /')); ?></td>
+								<td><?php echo escape($log['tool'] ?? ''); ?></td>
+								<td><?php echo (int) $log['step']; ?></td>
+								<td><?php echo (int) $log['inputTokens']; ?></td>
+								<td><?php echo (int) $log['outputTokens']; ?></td>
+								<td><?php echo escape($money($log['cost'])); ?></td>
+								<td><?php echo (int) $log['durationMs']; ?></td>
+								<td><?php echo escape($log['error'] ?? ''); ?></td>
+							</tr>
+						<?php endforeach; ?>
+						<?php if (empty($this->logs)) : ?>
+							<tr><td colspan="11" class="text-muted">Няма записи.</td></tr>
+						<?php endif; ?>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>

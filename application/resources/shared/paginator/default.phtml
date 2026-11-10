@@ -1,0 +1,55 @@
+<?php
+if (isset($this->hideOnOnePage) && $this->hideOnOnePage && $this->pages->pageCount <= 1) : return; endif;
+?>
+<nav class="row">
+    <div class="col-md-12 d-grid justify-content-md-end">
+        <ul class="pagination float-right" style="margin: 0 0 10px 0;">
+        <?php if (isset($this->pages->first) && $this->pages->current > 1) : ?>
+            <li class="paginate_button page-item previous">
+                <a class="page-link" href="<?php echo route(null, array('page' => $this->pages->first)); ?>" aria-label="<?php echo translate('Първа'); ?>"><?php echo translate('Първа'); ?></a>
+            </li>
+        <?php else : ?>
+            <li class="paginate_button page-item first disabled">
+            	<a aria-controls="alternative-page-datatable" aria-disabled="true" aria-role="link" data-dt-idx="first" tabindex="0" class="page-link"><?php echo translate('Първа'); ?></a>
+            </li>
+        <?php endif; ?>
+        <?php if (!isset($this->pages->previous)) : ?>
+            <li class="paginate_button page-item first disabled">
+            	<a aria-controls="alternative-page-datatable" aria-disabled="true" aria-role="link" data-dt-idx="first" tabindex="0" class="page-link"><?php echo translate('Предишна'); ?></a>
+            </li>
+        <?php else : ?>
+            <li>
+                <a class="page-link" href="<?php echo route(null, array('page' => $this->pages->previous)); ?>" aria-label="<?php echo translate('Предишна'); ?>"><?php echo translate('Предишна'); ?></a>
+            </li>
+        <?php endif; ?>
+        <?php foreach ($this->pages->pagesInRange as $page) : ?>
+            <?php if ($page == $this->pages->current) : ?>
+            	
+                <li class="active">
+                <a aria-controls="alternative-page-datatable" aria-disabled="true" aria-role="link" data-dt-idx="last" tabindex="0" class="page-link"><?php echo $page; ?></a>
+                </li>
+            <?php else : ?>
+                <li><a class="page-link" href="<?php echo route(null, array('page' => $page)); ?>"><?php echo $page; ?></a></li>
+            <?php endif; ?>
+        <?php endforeach; ?>
+        <?php if (!isset($this->pages->next)) : ?>
+            <li class="paginate_button page-item first disabled">
+            	<a aria-controls="alternative-page-datatable" aria-disabled="true" aria-role="link" data-dt-idx="last" tabindex="0" class="page-link"><?php echo translate('Следваша'); ?></a>
+            </li>
+        <?php else : ?>
+            <li>
+                <a class="page-link" href="<?php echo route(null, array('page' => $this->pages->next)); ?>" aria-label="<?php echo translate('Следваша'); ?>"><?php echo translate('Следваша'); ?></a>
+            </li>
+        <?php endif; ?>
+        <?php if (isset($this->pages->last) && $this->pages->current < $this->pages->lastPageInRange) : ?>
+            <li>
+                <a class="page-link" href="<?php echo route(null, array('page' => $this->pages->last)); ?>" aria-label="<?php echo translate('Последна'); ?>"><?php echo translate('Последна'); ?></a>
+            </li>
+        <?php else : ?>
+            <li class="paginate_button page-item first disabled">
+                <a aria-controls="alternative-page-datatable" aria-disabled="true" aria-role="link" data-dt-idx="last" tabindex="0" class="page-link"><?php echo translate('Последна'); ?></a>
+            </li>
+        <?php endif; ?>
+        </ul>
+    </div>
+</nav>

@@ -1,0 +1,25 @@
+<?php
+
+use Micro\Application\Utils;
+
+$req = app('request');
+$module = $req->getAttribute('module');
+$controller = $req->getAttribute('controller');
+$resource = ucfirst(Utils::camelize($module)) . '\\Controller\\Admin\\' . ucfirst(Utils::camelize($controller));
+
+$action = null;
+
+if (is_allowed($resource . '@edit')) {
+    $action = 'edit';
+} else if (is_allowed($resource . '@preview')) {
+    $action = 'preview';
+}
+
+if (empty($action)) {
+    echo $this->value;
+    return;
+}
+
+?>
+
+<a href="<?php echo route(null, ['action' => $action, 'id' => $this->item['id'], 'backTo' => route()]); ?>"><?php echo $this->value; ?></a>

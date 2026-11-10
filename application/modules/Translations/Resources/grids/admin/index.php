@@ -1,0 +1,115 @@
+<?php
+
+use Domains\Model\Domains;
+$router = app('router');
+
+return array(
+    'paginatorPlacement' => 'bottom',
+    'paginatorAlways' => 0,
+    'buttons' => [
+        'btnAdd' => [
+            'value' => 'Добавяне',
+            'class' => 'btn btn-primary',
+        ],
+        'btnActivate' => [
+            'value' => 'Активиране',
+            'class' => 'btn btn-success',
+            'attributes' => [
+                'data-rel' => 'ids[]',
+                'data-action' => $router->assemble(\null, ['action' => 'activate']),
+                'data-confirm' => 'Сигурни ли сте, че искате да активирате избраните записи?',
+            ],
+        ],
+        'btnDeactivate' => [
+            'value' => 'Деактивиране',
+            'class' => 'btn btn-warning',
+            'attributes' => [
+                'data-rel' => 'ids[]',
+                'data-action' => $router->assemble(\null, ['action' => 'deactivate']),
+                'data-confirm' => 'Сигурни ли сте, че искате да деактивирате избраните записи?',
+            ],
+        ],
+        'btnDelete' => [
+            'value' => 'Изтриване',
+            'class' => 'btn btn-danger',
+            'attributes' => [
+                'data-rel' => 'ids[]',
+                'data-action' => $router->assemble(\null, ['action' => 'delete']),
+                'data-confirm' => 'Сигурни ли сте, че искате да изтриете избраните записи?',
+            ],
+        ],
+    ],
+    'columns' => [
+        'ids' => [
+            'type' => 'checkbox',
+            'options' => [
+                'headClass' => 'text-center',
+                'class' => 'text-center',
+                'checkAll' => 1,
+                'sourceField' => 'id',
+                'headStyle' => 'width: 5%',
+            ],
+        ],
+        'id' => [
+            'options' => [
+                'title' => '#',
+                'sourceField' => 'id',
+                'sortable' => true,
+                'headStyle' => 'width: 5%',
+            ],
+        ],
+        'alias' => [
+            'type' => 'href',
+            'options' => [
+                'sourceField' => 'alias',
+                'title' => 'Ключ',
+                'params' => [
+                    'action' => 'edit',
+                    'id' => ':id',
+                ],
+            ],
+        ],
+        'name' => [
+            'options' => [
+                'title' => 'Превод',
+                'sourceField' => 'name',
+                'headStyle' => 'width: 30%',
+            ],
+        ],
+        'domainId' => [
+            'type' => 'pairs',
+            'options' => [
+                'title' => 'Domain',
+                'sourceField' => 'domainId',
+                'headStyle' => 'width: 10%',
+                'notFoundText' => '-',
+                'pairs' => (new Domains())->fetchCachedPairs(),
+            ],
+        ],
+        'active' => [
+            'type' => 'boolean',
+            'options' => [
+                'sourceField' => 'active',
+                'title' => 'Активност',
+                'headClass' => 'text-center',
+                'class' => 'text-center',
+                'true' => '<span class="fa fa-check"></span>',
+                'false' => '<span class="fa fa-ban"></span>',
+                'headStyle' => 'width: 5%',
+            ],
+        ],
+        'delete' => [
+            'type' => 'href',
+            'options' => [
+                'text'   => ' ',
+                'headStyle'  => 'width: 5%',
+                'class'  => 'text-center',
+                'hrefClass' => 'remove glyphicon glyphicon-trash',
+                'params' => [
+                    'action' => 'delete',
+                    'id' => ':id',
+                ],
+            ],
+        ],
+    ],
+);

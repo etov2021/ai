@@ -1,0 +1,30 @@
+<form class="form-horizontal" action="<?php echo route(); ?>" method="post" enctype="multipart/form-data">
+	<div class="row">
+		<div class="col-md-12">
+			<label class="form-label"><?php echo translate('Въпрос до'); ?></label>
+			<select name="toUserId[]" class="form-control select2" multiple>
+				<?php echo build_options($this->users, ($this->post['toUserId'] ?? [])); ?>
+			</select>
+		</div>
+	</div>
+	<div class="row mb-3">
+		<div class="col-md-12">
+			<label class="form-label"><?php echo translate('Коментар'); ?></label>
+			<textarea name="comment" class="form-control" rows="5"><?php echo ($this->post['comment'] ?? ''); ?></textarea>
+		<?php if (isset($this->errors['text'])) : ?>
+			<span class="element-error"><?php echo $this->errors['comment']; ?></span>
+		<?php endif; ?>
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-md-12 text-end">
+			<button class="btn btn-primary" data-handler="add-to-user" data-url="<?php echo route('admin', ['action' => 'ajax-add-to-user', 'questionId' => $this->questionId]); ?>"><?php echo translate('Добавяне'); ?></button>
+		</div>
+	</div>
+</form>
+<script>
+$('select.select2').select2({
+	language: app.language.ui.code,
+	dropdownParent: $('#questionsModal')
+});
+</script>

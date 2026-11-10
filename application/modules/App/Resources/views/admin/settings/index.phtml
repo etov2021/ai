@@ -1,0 +1,135 @@
+<?php
+
+$menu  = $this->helper('Navigation')->navigation('admin.main')->findAllBy('active', 1);
+$label = !empty($menu) ? end($menu)->getLabel() : '';
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label)
+     ;
+
+$currentUrl = server_url(route());
+
+?>
+<div class="row">
+	<div class="col-12">
+		<div class="card">
+			<div class="card-body">
+				<h2 class="mb-4"><i class="mdi mdi-apps"></i> <?php echo $label; ?></h2>
+
+                <div class="row">
+                	<div class="col-md-8">
+            			<h4 class="mt-4"><?php echo translate('Списък с настройки'); ?></h4>
+                        <form class="form-horizontal" action="<?php echo route(); ?>" method="post" enctype="multipart/form-data">
+                            <div style="margin-bottom: 15px">
+                            	<ul class="nav nav-tabs nav-tabs-custom nav-justified" role="tablist">
+                                <?php foreach ($this->settings as $k => $v) : ?>
+                                	<li class="nav-item" id="tab-<?php echo md5($k); ?>">
+                                		<a href="<?php echo $currentUrl; ?>#tabs-<?php echo md5($k); ?>" class="nav-link" data-bs-toggle="tab" role="tab"><?php echo translate($k); ?></a>
+                            		</li>
+                                <?php endforeach; ?>
+                                </ul>
+                                <?php foreach ($this->settings as  $k => $v) : ?>
+                        		<div class="tab-content p-3 rounded-bottom mt-5" id="tabs-<?php echo md5($k); ?>" class="section" data-id="<?php echo md5($k); ?>">
+                                    <table class="table table-bordered table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 200px"><?php echo translate('Ключ'); ?></th>
+                                                <th><?php echo translate('Стойност'); ?></th>
+                                                <th style="width: 5%; display: none;"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                        <?php
+                                        foreach ($v as $kk => $vv) :
+                                            $key = translate($kk) != $kk ? $kk : '';
+                                        ?>
+                                            <tr>
+                                                <td nowrap>
+                                                	<?php echo translate($kk); ?>
+                                            	<?php if ($key) : ?>
+                                                	<div>(<strong><?php echo $key; ?></strong>)</div>
+                                            	<?php endif; ?>
+                                            	</td>
+                                                <td>
+                                                <?php if ($vv['elementType'] == 'checkbox') : ?>
+        											<input name="settings[<?php echo $vv['id']; ?>]" type="hidden" value="0" />
+        											<input style="height: 20px; width: 20px;" name="settings[<?php echo $vv['id']; ?>]" type="checkbox" value="1"<?php echo ($vv['value'] ? ' checked' : ''); ?> />
+                                            	<?php else: ?>
+                                            		<input class="form-control" name="settings[<?php echo $vv['id']; ?>]" type="text" value="<?php echo $vv['value']; ?>" />
+                                            	<?php endif; ?>
+                                            	</td>
+                                                <td class="text-center" style="display: none; vertical-align: middle"><a class="removeSetting glyphicon glyphicon-trash" href="<?php echo route(null, ['action' => 'delete', 'id' => $vv['id']]); ?>"> </a></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                            	</div>
+                                <?php endforeach; ?>
+                            </div>
+                            <input type="submit" class="btn btn-primary" name="btnSave" value="<?php echo translate('Запазване'); ?>" />
+                        </form>
+                	</div>
+                	<div class="col-md-4">
+            			<h4 class="mt-4"><?php echo translate('Добавяне на нова настройка'); ?></h4>
+                        <form class="form-horizontal" action="<?php echo route(); ?>" method="post" enctype="multipart/form-data">
+                            <div class="row">
+                                <div class="col-md-12">
+                            		<div class="row mb-3">
+                        				<div class="col-md-6">
+                        					<select class="form-control select2" name="section">
+                        						<?php echo build_options($this->settingsSections, (isset($this->post['section']) ? $this->post['section'] : 0), null, "", true); ?>
+                        					</select>
+                        				</div>
+                        				<div class="col-md-6">
+                        					<select class="form-control select2" name="elementType">
+                        						<?php echo build_options(['text' => 'Text', 'checkbox' => 'Checkbox'], (isset($this->post['elementType']) ? $this->post['elementType'] : 'text'), null, "", true); ?>
+                        					</select>
+                        				</div>
+                    				</div>
+                                	<div class="row mb-3">
+                        				<div class="col-md-6">
+                                			<input class="form-control" name="key" type="text" placeholder="<?php echo translate('Ключ'); ?>" value="<?php echo (isset($this->post['key']) ? $this->post['key'] : ''); ?>" />
+                            			<?php if (isset($this->errors['key'])) : ?>
+                                			<span class="element-error"><?php echo $this->errors['key']; ?></span>
+                            			<?php endif; ?>
+                            			</div>
+                            			<div class="col-md-6">
+                                			<input class="form-control" name="value" type="text" placeholder="<?php echo translate('Стойност'); ?>" value="<?php echo (isset($this->post['value']) ? $this->post['value'] : ''); ?>" />
+                            			</div>
+                                	</div>
+                                	<div class="row mb-3">
+                            			<div class="col-md-12">
+                                			<input type="submit" class="btn btn-primary" name="btnAdd" value="<?php echo translate('Добавяне'); ?>" />
+                            			</div>
+                                	</div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+			</div>
+		</div>
+	</div>
+</div>
+<?php $this->start('scripts'); ?>
+<script>
+$('.removeSetting').on('click', function () {
+	var that = $(this);
+	smart.confirm("<?php echo escaper('js', translate("Сигурни ли сте, че искате да изтриете записа?")); ?>", function (yes) {
+		if (yes) {
+			ajaxMessage = '<?php echo translate('Настройката е изтрита'); ?>';
+			$.post(that.attr('href'), {}, function () {
+				var section = that.closest('.section');
+				that.closest('tr').remove();
+				if (!section.find('tbody tr').length) {
+					$('#tab-' + section.attr('data-id')).remove();
+					section.remove();
+					$('.tabs').tabs('option', 'active', 0);
+				}
+			});
+		}
+	});
+	return false;
+});
+</script>
+<?php $this->stop(); ?>

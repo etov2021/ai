@@ -1,0 +1,104 @@
+<?php
+
+use Sonata\GoogleAuthenticator\GoogleQrUrl;
+
+$label = translate('Профил');
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label)
+     ;
+
+$this->hookToMenu('admin.main', 'admin.home', $label);
+
+?>
+<div class="col-12">
+    <div class="card">
+    	<div class="card-body">
+    		<h4 class="card-title"><?php echo $label;?></h4>
+    		
+    		<form class="form-horizontal" action="<?php echo route(); ?>" method="post" enctype="multipart/form-data">
+                <div class="row">
+                    <div class="col-md-12">
+                    	<h5 class="font-size-14 mb-4 mt-4"><?php echo translate('Потребител'); ?>: <?php echo $this->item->getUsername(); ?></h5>
+                    </div>
+                	<div class="col-lg-4">
+                		<div class="mb-3">
+                            <?php echo $this->form->email->renderLabel(); ?>
+                            <?php echo $this->form->email; ?>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                    	<div class="mb-3">
+                            <?php echo $this->form->password->renderLabel(); ?>
+                            <?php echo $this->form->password; ?>
+                    	</div>
+                    </div>
+                    <div class="col-md-4">
+                    	<div class="mb-3">
+                            <?php echo $this->form->repassword->renderLabel(); ?>
+                            <?php echo $this->form->repassword; ?>
+                    	</div>
+                    </div>
+                <?php if (config('auth.2fa')) : ?>
+                    <h2><?php echo translate('2-Step Verification'); ?></h2>
+                    <div class="form-group">
+                    	<div class="col-md-12">
+                        	<div class="radio">
+    							<label>
+    								<input type="radio" name="auth2fa" value=""<?php echo !isset($this->post['auth2fa']) || empty($this->post['auth2fa']) ? ' checked' : ''; ?>/>
+    								<?php echo translate('Забранено'); ?>
+    							</label>
+                            </div>
+                        	<div class="radio">
+    							<label>
+    								<input type="radio" name="auth2fa" value="email"<?php echo isset($this->post['auth2fa']) && $this->post['auth2fa'] == 'email' ? ' checked' : ''; ?>/>
+    								<?php echo translate('Електронна поща'); ?>
+    							</label>
+                            </div>
+                            <div class="radio">
+    							<label>
+    								<input type="radio" name="auth2fa" value="google"<?php echo isset($this->post['auth2fa']) && $this->post['auth2fa'] == 'google' ? ' checked' : ''; ?>/>
+    								<?php echo translate('Google Authenticator'); ?>
+								<?php if (empty($this->item['auth2faSecret'])) : ?>
+									<strong><?php echo translate('(след запазване на профила Ви ще се генерира секретен ключ)'); ?></strong>
+								<?php endif; ?>
+    							</label>
+                                <div class="googleAuth" style="display: <?php echo $this->item['auth2fa'] == 'google' && $this->item['auth2faSecret'] ? 'block' : 'none'; ?>;">
+                                <?php if ($this->item['auth2faSecret']) : ?>
+                            		<div style="margin: 10px 0;">
+        								<?php echo sprintf(translate('Set up you 2FA by scanning the barcode below. Alternatively you can use the code %s'), '<strong>' . $this->item['auth2faSecret'] . '</strong>'); ?>
+        							</div>
+        							<?php echo '<img src="' . GoogleQrUrl::generate(app('domain')->getName() . '@' . $this->item['username'], $this->item['auth2faSecret']) . '"/>'; ?>
+        							<div style="margin-top: 10px; color: red;">
+        								<?php echo translate('You must set up your Google Authenticator app before logout. You will unable to login otherwise.'); ?>
+        							</div>
+    							<?php if ($this->item['auth2fa'] == 'google') : ?>
+        							<a href="<?php echo route_reset('admin', ['module' => 'user-management', 'controller' => 'index', 'action' => 'generate-secret']); ?>" class="btn btn-success" style="margin-top: 10px;"><?php echo translate('Генериране на нов секретен ключ'); ?></a>
+    							<?php endif; ?>
+                            	<?php endif; ?>
+                            	</div>
+                            </div>
+                        </div>
+                    </div>
+            	<?php endif; ?>
+                </div>
+     
+                <?php echo $this->form->btnSave; ?>
+            </form>
+    	</div>
+    </div>
+</div>
+
+<?php $this->start('scripts'); ?>
+<script>
+$(function () {
+	$('input[name="auth2fa"]').on('click', function () {
+		if ($(this).val() == 'google') {
+			$('.googleAuth').show();
+		} else {
+			$('.googleAuth').hide();
+		}
+	});
+});
+</script>
+<?php $this->stop(); ?>

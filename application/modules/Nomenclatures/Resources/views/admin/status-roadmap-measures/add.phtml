@@ -1,0 +1,65 @@
+<?php
+
+$label = translate($this->item['id'] ? 'Редактиране' : 'Добавяне');
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label)
+     ;
+
+$this->hookToMenu('admin.main', 'admin.nomenclatures.status.roadmap.measures', $label);
+
+?>
+<div class="row">
+	<div class="col-md-12">
+		<div class="card">
+    		<div class="card-body">
+        		<h2 class="mb-4">
+        			<i class="mdi mdi-clipboard-outline"></i>
+        			<?php echo $label; ?>
+        		</h2>
+                <form class="form-horizontal" action="<?php echo route(); ?>" method="post" enctype="multipart/form-data">
+                    <div class="row mb-4">
+                    	<div class="col-md-9">
+                        	<div class="form-group">
+                        		<div class="col-md-12">
+                                    <?php echo $this->form->name->renderLabel(); ?>
+                                    <?php echo $this->form->name; ?>
+                                </div>
+                        	</div>
+                    	</div>
+                    	<div class="col-md-3">
+                    		<h6 class="mb-4">
+                    			<?php echo translate('Статуси'); ?>
+                    		</h6>
+                			<div class="row mb-4">
+                				<div class="col-md-12">
+                					<label class="checkbox-inline">
+                    					<?php echo $this->form->active; ?>
+                    					<?php echo $this->form->active->getLabel(); ?>
+                					</label>
+                				</div>
+                        	</div>
+                        	<div class="row mb-4">
+                				<div class="col-md-12">
+                					<?php echo $this->form->color->renderLabel(); ?>
+                                    <?php echo $this->form->color; ?>
+                				</div>
+                			</div>
+                        </div>
+                	</div>
+                    <div class="mt-4">
+                        <?php echo $this->form->btnSave; ?>
+                        <?php echo $this->form->btnApply; ?>
+                        <?php echo $this->form->btnBack; ?>
+                        <?php echo $this->form->btnDeleteTranslation; ?>
+                    </div>
+                </form>
+        
+        	</div>
+        </div>
+
+	</div>
+</div>
+<?php $this->start('scripts'); ?>
+<script src="js/jscolor.js"></script>
+<?php $this->stop(); ?>

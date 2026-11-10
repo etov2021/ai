@@ -1,0 +1,28 @@
+ <?php
+$languages = app('languages');
+if (!empty($languages)) :
+    $currentLanguage = app('language');
+?>
+    <div class="dropdown d-inline-block">
+        <button type="button" class="btn header-item waves-effect waves-light" id="page-header-user-dropdown"
+            data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            <img class="" src="templates/default/images/flags/png/<?php echo $currentLanguage->getLocale(); ?>.png"alt="<?php echo $currentLanguage->getLocale(); ?>" height="16">
+            <span class="d-none d-sm-inline-block ml-1"><?php echo $currentLanguage->getName(); ?></span>
+            <i class="mdi mdi-chevron-down d-none d-sm-inline-block"></i>
+        </button>
+    <?php if (count($languages) > 1) : ?>
+        <div class="dropdown-menu dropdown-menu-right">
+        <?php
+        foreach ($languages as $language) :
+            if ($language->getId() == $currentLanguage->getId()) :
+                continue;
+            endif;
+        ?>
+            <a href="<?php echo route(null, ['lang' => $language->getCode()]); ?>" class="dropdown-item notify-item">
+                <img src="templates/default/images/flags/png/<?php echo $language->getLocale(); ?>.png" alt="user-image" class="mr-1" height="12"> <span class="align-middle"><?php echo $language->getName(); ?></span>
+            </a>
+        <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
+    </div>
+<?php endif; ?>

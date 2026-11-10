@@ -1,0 +1,43 @@
+<?php
+
+use UserManagement\Model\Users;
+
+$users = (new Users())->fetchCachedPairs(null, ['id', 'CONCAT_WS(" ", UsersInfo.firstName, UsersInfo.middleName, UsersInfo.lastName)']);
+
+$link = server_url(route(null, ['action' => 'preview', 'backTo' => null]));
+
+echo '<div style="margin-bottom: 10px;">' . translate(sprintf('Отговор от %s', ($users[$this->answer['ownerId']] ?? '-'))) . '</div>';
+echo '<div style="margin-bottom: 10px;"><strong>' . translate('Въпрос') . '</strong>: ' . nl2br($this->question['text']) . '</div>';
+echo '<div style="margin-bottom: 10px;"><strong>' . translate('Отговор') . '</strong>: ' . nl2br($this->answer['text']) . '</div>';
+echo '<div style="margin-bottom: 10px;"><strong>' . translate('Линк') . '</strong>: <a href="' . $link . '">' . translate('тук') . '</a></div>';
+
+echo '<h2>' . translate('Йерархия на въпроса') . '</h2>';
+
+$date = (new Datetime($this->question['created']));
+echo '<div style="margin-bottom: 5px; padding: 5px; border: 1px solid #ccc;">';
+echo $date->format('d.m.Y, H:i:s');
+echo ' ' . translate(sprintf('от %s' , '<strong>' . ($users[$this->question['ownerId']] ?? '-') . '</strong>'));
+if ($this->question['toUserId']) {
+    $toUsers = [];
+    foreach (explode(',', $this->question['toUserId']) as $toUserId) {
+        if (isset($users[$toUserId])) {
+            $toUsers[] = $users[$toUserId];
+        }
+    }
+    if (!empty($toUsers)) {
+        echo ' ' . translate(sprintf('до %s', '<strong>' . (implode(', ', $toUsers)) . '</strong>'));
+    }
+}
+echo '<br />';
+echo '<em>' . nl2br($this->question['text']) . '</em>';
+echo '</div>';
+
+foreach ($this->answers as $answer) {
+    $date = (new Datetime($answer['created']));
+    echo '<div style="margin-bottom: 5px; padding: 5px 5px 5px 30px; border: 1px solid #ccc;">';
+    echo $date->format('d.m.Y, H:i:s');
+    echo ' ' . translate(sprintf('от %s' , '<strong>' . ($users[$answer['ownerId']] ?? '-') . '</strong>'));
+    echo '<br />';
+    echo '<em>' . nl2br($answer['text']) . '</em>';
+    echo '</div>';
+}

@@ -1,0 +1,217 @@
+<?php
+
+if (!function_exists('pp')) {
+    function pp($arr) {
+        $retStr = '<ul>';
+        $forbidden = [
+                      'password',
+                      'borica',
+                      'jwt',
+                      'username',
+                      'bnp',
+                      'google_captcha_site_secret',
+                      'google_captcha_site_key',
+                      'google_maps_key'
+                     ];
+        if (is_array($arr)){
+            foreach ($arr as $key => $val){
+                if(in_array($key, $forbidden)) {
+                    continue;
+                }
+                if (is_array($val)){
+                    $retStr .= '<li>' . $key . ' => ' . pp($val) . '</li>';
+                } else if (is_object($val)) {
+                    $retStr .= '<li>' . $key . ' => ' . gettype($val) . '</li>';
+                } else if (is_bool($val)) {
+                    $retStr .= '<li>' . $key . ' => ' . ($val ? 'true' : 'false') . '</li>';
+                } else {
+                    $retStr .= '<li>' . $key . ' => ' . $val . '</li>';
+                }
+            }
+        }
+        $retStr .= '</ul>';
+        return $retStr;
+    }
+}
+
+$total = microtime(true) - $_SERVER['REQUEST_TIME_FLOAT'];
+
+echo '<div class="debug-bar">';
+
+echo '<div class="debug-item empty">';
+printf("<h1>Time: %ss.</h1>", $total);
+echo '</div>';
+
+echo '<div class="debug-item">';
+echo '<h1>Request</h1>';
+echo '<pre>';
+try {
+    $params = app('request')->getParams();
+    if (isset($params['exception']) && $params['exception'] instanceof \Exception) {
+        $params['exception'] = $params['exception']->getMessage();
+    }
+    echo pp($params);
+} catch (\Exception $e) {
+    echo $e->getMessage();
+}
+echo '</pre>';
+echo '</div>';
+
+$errors = app('logger')->getMessages();
+if (!empty($errors)) {
+    echo '<div class="debug-item">';
+    echo '<h1 style="color: red; font-weight: bold;">Errors</h1>';
+    echo '<pre>';
+    foreach ($errors as $level => $messages) {
+        echo '<div style="margin: 5px 0; font-size: 1.2em"><strong>' . $level . '</strong></div>';
+        foreach ($messages as $message) {
+            echo '<div>' . $message . '</div>';
+        }
+    }
+    echo '</pre>';
+    echo '</div>';
+}
+
+
+echo '<div class="debug-item">';
+echo '<h1>Events</h1>';
+echo '<pre>';
+$c = 0;
+ob_start();
+$executed = app('event')->getExecuted();
+foreach (app('event')->getEvents() as $event => $priorities) {
+    echo '<div style="margin: 5px 0; font-size: 1.2em"><strong>' . $event . ' (Executed: ' . (isset($executed[$event]) ? 'Yes' : 'No') . ')</strong></div>';
+    krsort($priorities, SORT_NUMERIC);
+    foreach ($priorities as $priority => $listeners) {
+        foreach ($listeners as $k => $listener) {
+            if ($listener instanceof Closure) {
+                $r = new ReflectionFunction($listener);
+                $listener = 'CLOSURE in ' . $r->getFileName() . ' (' . $r->getStartLine() . ')';
+            } elseif (is_object($listener)) {
+                $listener = 'CLASS ' . get_class($listener);
+            } elseif(is_array($listener)) {
+                $listener = is_object($listener[0]) ? 'CLASS ' . get_class($listener[0]) : (is_scalar($listener[0]) ? $listener[0] : gettype($listener[0]));
+            }
+            echo '<div>' . ($k + 1) . '. ' . $listener . '</div>';
+            $c++;
+        }
+    }
+}
+$buff = ob_get_clean();
+echo $c . ' events';
+echo $buff;
+echo '</pre>';
+echo '</div>';
+
+$routes = app('router')->getRoutes();
+$matches = app('router')->getMatches();
+
+echo '<div class="debug-item">';
+echo '<h1>Route table</h1>';
+echo '<pre>';
+echo '<table class="table">';
+foreach ($routes as $route) {
+    $match = [
+        'success' => false,
+    ];
+    $data = $route->toArray();
+    if (isset($matches[$route->getName()])) {
+        $match = $matches[$route->getName()];
+        $data  = $match['route']->toArray();
+    }
+
+    $color = 'padding: 5px; ' . ($match['success'] ? 'background-color: #ccc;' : '');
+
+    echo '<tr>';
+    echo '<td style="' . $color . ' text-align: center; width: 40px;">' . ($match['success'] ? 'yes' : 'no') . '</td>';
+    echo '<td style="' . $color . '">NAME: ' . $data['name'] . '<br />HANDLER: ' . $data['handler'] . '<br />CONDITIONS: ' . $data['conditions'] . '<br />METHODS: ' . $data['methods'] . '</td>';
+    echo '<td style="' . $color . '">PATTERN: ' . $data['pattern'] . '<br />DEFAULTS: ' . $data['defaults'] . '<br />COMPILED: ' . $data['compiled'] . '<br />MATCHED PARAMS: ' . $data['params'] . '</td>';
+    echo '</tr>';
+}
+echo '</table>';
+echo '</pre>';
+echo '</div>';
+
+$db = app('db', true);
+
+if ($db && $db->getProfiler() && $db->getProfiler()->getEnabled()) {
+
+    $profiler     = $db->getProfiler();
+    $totalTime    = $profiler->getTotalElapsedSecs();
+    $queryCount   = $profiler->getTotalNumQueries();
+    $longestTime  = 0;
+    $longestQuery = null;
+    $queries      = array();
+
+    echo '<div class="debug-item">';
+    echo '<h1>Database (' . $queryCount . ' for ' . sprintf('%.6f', $totalTime) . 's.)</h1>';
+    echo '<pre>';
+    if ($profiler->getQueryProfiles()) {
+        foreach ($profiler->getQueryProfiles() as $query) {
+            $querySql = $query->getQuery();
+            $querySql = trim(preg_replace('~\s\s+~', ' ', $querySql));
+            if ($querySql !== 'connect' && $query->getElapsedSecs() > $longestTime) {
+                $longestTime  = $query->getElapsedSecs();
+                $longestQuery = $querySql;
+            }
+            $queries[] = '<div class="debug-query">' . sprintf('(%.6fs.) ',  $query->getElapsedSecs()) . $querySql . '</div>';
+        }
+    }
+    echo 'Executed ' . $queryCount . ' queries in ' . sprintf('%.6f', $totalTime) . ' seconds' . "<br />";
+    if ($profiler->getQueryProfiles()) {
+        echo 'Queries percent: ' . ($total ? round(($totalTime / $total) * 100, 2) : 0) . ' %<br/>';
+        echo 'Queries:<br />';
+        echo implode('', $queries);
+        echo 'Average query length: ' . sprintf('%.6f', ($queryCount ? $totalTime / $queryCount : 0)) . ' seconds' . "<br />";
+        echo 'Queries per second: ' . sprintf('%.6f', $totalTime ? ($queryCount / $totalTime) : 0) . " seconds<br />";
+        echo 'Longest query length: ' . sprintf('%.6f', $longestTime) . " seconds<br />";
+        echo "Longest query:<br />";
+        echo '<div class="debug-query">' . sprintf('(%.6fs.) ',  $longestTime) . $longestQuery . '</div>';
+    }
+    echo '</pre>';
+    echo '</div>';
+}
+
+echo '<div class="debug-item">';
+echo '<h1>Memory</h1>';
+echo '<pre>';
+echo 'Usage: ' . number_format((memory_get_usage() / 1024 / 1024), 6) . ' MB';
+echo '<br />Peak usage: ' . number_format((memory_get_peak_usage() / 1024 / 1024), 6) . ' MB';
+echo '</pre>';
+echo '</div>';
+
+if (isset($_SESSION)) {
+    echo '<div class="debug-item">';
+    echo '<h1>Session</h1>';
+    echo '<pre>';
+    echo pp($_SESSION);
+    echo '</pre>';
+    echo '</div>';
+}
+
+echo '<div class="debug-item">';
+echo '<h1>Config</h1>';
+echo '<pre>';
+echo pp(config());
+echo '</pre>';
+echo '</div>';
+
+$f  = \MicroLoader::getFiles();
+$fn = count($f);
+
+$n  = count(array_filter($f, function ($v) {
+    return $v != 'NOT EXISTS';
+}));
+
+$an = count(\MicroLoader::getAutoloaded());
+
+echo '<div class="debug-item">';
+echo '<h1>Classes (' . ($n - $an) . ' mapped / ' . $fn . ' total)</h1>';
+echo '<pre>';
+echo $fn;
+echo '<br />';
+echo pp($f);
+echo '</pre>';
+echo '</div>';
+
+echo '</div>';

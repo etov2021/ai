@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="bg">
+	<head>
+		<title><?php echo $this->renderSection('title', (isset($this->metaRoute) && isset($this->metaRoute['title']) ? $this->metaRoute['title'] : translate('Начало'))); ?></title>
+		<?php echo $this->render('layouts/admin/includes/_head'); ?>
+	</head>
+	<body>
+	<?php if (identity()) : ?>
+		<script>
+		if (typeof(Storage) !== undefined) {
+			if (window.sessionStorage.getItem('minified') == 1) {
+				var body = document.getElementsByTagName("BODY")[0];
+				body.classList.add('minified');
+			}
+		}
+		</script>
+		<?php
+            echo $this->render('layouts/admin/includes/_header');
+			echo $this->render('layouts/admin/includes/_nav');
+		?>
+		<div id="main" role="main">
+			<?php
+                echo $this->render('layouts/admin/includes/_breadcrumbs');
+            ?>
+			<div id="content">
+			<?php
+			    echo $this->render('layouts/admin/includes/_flash');
+				echo $this->renderSection('content');
+			?>
+			</div>
+		</div>
+		<?php
+            echo $this->render('layouts/admin/includes/_footer');
+            echo $this->render('layouts/admin/includes/_footer-scripts');
+        ?>
+    <?php else: ?>
+		<div id="content">
+			<?php echo $this->renderSection('content'); ?>
+		</div>
+    <?php endif; ?>
+	</body>
+</html>

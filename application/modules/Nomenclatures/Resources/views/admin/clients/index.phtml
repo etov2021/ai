@@ -1,0 +1,51 @@
+<?php
+
+$menu  = $this->helper('Navigation')->navigation('admin.main')->findAllBy('active', 1);
+$label = !empty($menu) ? end($menu)->getLabel() : '';
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label)
+     ;
+
+?>
+<div class="row">
+	<div class="col-md-12">
+		<div class="card">
+    		<div class="card-body">
+        		<h2 class="mb-4">
+        			<i class="mdi mdi-clipboard-outline"></i>
+        			<?php echo $label; ?>
+        		</h2>
+                <div class="row">
+                    <div class="col-md-12">
+                        <form class="form-horizontal filter" action="<?php echo route(); ?>" method="post">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <?php echo $this->form->name->renderLabel(); ?>
+                                    <?php echo $this->form->name; ?>
+                                </div>
+                                <div class="col-md-6">
+                                    <?php echo $this->form->abbr->renderLabel(); ?>
+                                    <?php echo $this->form->abbr; ?>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                            	<div class="col-md-12">
+                                	<?php echo $this->form->filter; ?>
+                                	<?php echo $this->form->reset; ?>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                	<div class="col-md-12" style="overflow-x:auto;">	
+                        <?php echo $this->grid; ?>
+                    </div>
+                </div>
+                
+        	</div>
+        </div>
+
+	</div>
+</div>

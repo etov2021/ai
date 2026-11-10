@@ -1,0 +1,116 @@
+<div class="panel panel-default">
+    <div class="panel-body">
+        <div style="margin: 10px 0;">
+        	<button data-handler="add-question-button" class="btn btn-primary"><?php echo translate('Добавяне на въпрос'); ?></button>
+        </div>
+        <div class="questions table-responsive">
+        	<?php echo $this->render('admin::questions/ajax-questions'); ?>
+        </div>
+     </div>
+</div>
+<div id="questionsModal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+        	<div class="modal-header"><h5 class="modal-title"></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+            <div class="modal-body" style="overflow-x: hidden; overflow-y: auto; max-height: 600px;"></div>
+        </div>
+    </div>
+</div>
+<?php $this->start('scripts'); ?>
+<script>
+$('#questionsModal').on('click', '[data-handler="add-question"], [data-handler="add-answer"], [data-handler="add-to-user"]', function () {
+	var form = $(this).closest('form');
+	$('#questionsModal').block({message: ''});
+	$.post($(this).attr('data-url'), form.serializeArray(), function (res) {
+		if ($.trim(res) === '') {
+			loadQuestions();
+			return;
+		}
+		$('#questionsModal .modal-body').html(res);
+    }).always(function () {
+    	$('#questionsModal').unblock();
+	});
+	return false;
+});
+$('[data-handler="add-question-button"]').on('click', function () {
+	$('#questionsModal .modal-header .modal-title').text('<?php echo translate('Добавяне на въпрос'); ?>');
+	$('#questionsModal .modal-body').load('<?php echo route('admin', ['action' => 'ajax-add-question']); ?>', function (res) {
+        $('#questionsModal').modal('show');
+    });
+	return false;
+});
+$('.questions').on('click', '[data-handler="edit-question-button"]', function () {
+	$('#questionsModal .modal-header .modal-title').text('<?php echo translate('Редактиране на въпрос'); ?>');
+	$.get('<?php echo route('admin', ['action' => 'ajax-add-question']); ?>', {questionId: $(this).attr('data-id')}, function (res) {
+		$('#questionsModal .modal-body').html(res);
+        $('#questionsModal').modal('show');
+    });
+	return false;
+});
+$('.questions').on('click', '[data-handler="add-answer-button"]', function () {
+	$('#questionsModal .modal-header .modal-title').text('<?php echo translate('Добавяне на отговор към въпрос'); ?>');
+	$.get('<?php echo route('admin', ['action' => 'ajax-add-answer']); ?>', {questionId: $(this).attr('data-id')}, function (res) {
+		$('#questionsModal .modal-body').html(res);
+        $('#questionsModal').modal('show');
+    });
+	return false;
+});
+$('.questions').on('click', '[data-handler="edit-answer-button"]', function () {
+	$('#questionsModal .modal-header .modal-title').text('<?php echo translate('Добавяне на отговор към въпрос'); ?>');
+	$.get('<?php echo route('admin', ['action' => 'ajax-add-answer']); ?>', {answerId: $(this).attr('data-id'), questionId: $(this).attr('data-questionId')}, function (res) {
+		$('#questionsModal .modal-body').html(res);
+        $('#questionsModal').modal('show');
+    });
+	return false;
+});
+$('.questions').on('click', '[data-handler="delete-question-button"]', function () {
+	if (confirm('Сигурни ли сте, че искате да изтриете въпроса?')) {
+		$.post('<?php echo route('admin', ['action' => 'ajax-delete-question']); ?>', {questionId: $(this).attr('data-id')}, function () {
+			loadQuestions();
+		});
+	}
+	return false;
+});
+$('.questions').on('click', '[data-handler="delete-answer-button"]', function () {
+	if (confirm('Сигурни ли сте, че искате да изтриете отговора?')) {
+		$.post('<?php echo route('admin', ['action' => 'ajax-delete-answer']); ?>', {answerId: $(this).attr('data-id'), questionId: $(this).attr('data-questionId')}, function () {
+			loadQuestions();
+		});
+	}
+	return false;
+});
+$('.questions').on('click', '[data-handler="add-to-user-button"]', function () {
+	$('#questionsModal .modal-header .modal-title').text('<?php echo translate('Добавяне на потребител към въпрос'); ?>');
+	$.get('<?php echo route('admin', ['action' => 'ajax-add-to-user']); ?>', {questionId: $(this).attr('data-id')}, function (res) {
+		$('#questionsModal .modal-body').html(res);
+        $('#questionsModal').modal('show');
+    });
+	return false;
+});
+$('.questions').on('change', '[data-handler="status"]', function () {
+	var that = $(this);
+	var table = that.closest('table');
+	var status = $(this).val();
+	table.block({message: ''});
+	$.post('<?php echo route('admin', ['action' => 'ajax-question-status']); ?>', {questionId: $(this).attr('data-id'), status: status}, function (res) {
+		that.attr('data-status', status);
+    }).fail(function () {
+    	that.val(that.attr('data-status'));
+    }).always(function () {
+    	table.unblock();
+	});
+	return false;
+});
+function loadQuestions()
+{
+	/**$('.questions').block({message: ''});
+	$.post('<?php echo route('admin', ['action' => 'ajax-questions']); ?>', function (res) {
+		$('.questions').html(res);
+	}).always(function () {
+		$('.questions').unblock();
+	});**/
+
+	window.location.reload(true);
+}
+</script>
+<?php $this->stop(); ?>

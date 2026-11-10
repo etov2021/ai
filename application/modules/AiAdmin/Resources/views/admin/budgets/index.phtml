@@ -1,0 +1,84 @@
+<?php
+
+$label = 'AI - Лимити и бюджети';
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label);
+
+$fmt = static fn ($v) => $v === null ? '<span class="text-muted">без лимит</span>' : escape((string) $v);
+
+?>
+<div class="row">
+	<div class="col-12">
+		<div class="card">
+			<div class="card-body">
+				<h2 class="mb-4"><i class="fa fa-tachometer fa-fw"></i> <?php echo escape($label); ?></h2>
+				<p><a class="btn btn-default" href="<?php echo escape($this->homeUrl); ?>">Назад</a></p>
+				<div class="table-responsive">
+					<table class="table table-striped">
+						<thead>
+							<tr><th>Обхват</th><th>Ключ</th><th>Заявки/мин</th><th>Дневен (EUR)</th><th>Месечен (EUR)</th><th>Предупр. %</th><th>Активно</th><th></th></tr>
+						</thead>
+						<tbody>
+						<?php foreach ($this->rows as $row) : $r = $row['rule']; ?>
+							<tr>
+								<td><?php echo escape($r['scope']); ?></td>
+								<td><?php echo escape($r['scopeKey'] === '' ? '-' : $r['scopeKey']); ?></td>
+								<td><?php echo $fmt($r['rateLimitPerMinute']); ?></td>
+								<td><?php echo $fmt($r['dailyLimit']); ?></td>
+								<td><?php echo $fmt($r['monthlyLimit']); ?></td>
+								<td><?php echo (int) $r['warnPercent']; ?></td>
+								<td><?php echo $r['active'] ? 'да' : 'не'; ?></td>
+								<td><a href="<?php echo escape($row['edit']); ?>">Редактиране</a></td>
+							</tr>
+						<?php endforeach; ?>
+						<?php if (empty($this->rows)) : ?>
+							<tr><td colspan="8" class="text-muted">Няма правила - няма ограничения.</td></tr>
+						<?php endif; ?>
+						</tbody>
+					</table>
+				</div>
+
+				<h4 class="mt-4">Правило</h4>
+				<form class="form-horizontal" action="<?php echo route(); ?>" method="post" autocomplete="off">
+					<?php echo $this->form->csrf; ?>
+					<div class="row mb-3">
+						<div class="col-md-3">
+							<?php echo $this->form->scope->renderLabel(); ?>
+							<?php echo $this->form->scope; ?>
+						</div>
+						<div class="col-md-3">
+							<?php echo $this->form->scopeKey->renderLabel(); ?>
+							<?php echo $this->form->scopeKey; ?>
+						</div>
+						<div class="col-md-3">
+							<?php echo $this->form->rateLimitPerMinute->renderLabel(); ?>
+							<?php echo $this->form->rateLimitPerMinute; ?>
+						</div>
+						<div class="col-md-3">
+							<?php echo $this->form->warnPercent->renderLabel(); ?>
+							<?php echo $this->form->warnPercent; ?>
+						</div>
+					</div>
+					<div class="row mb-3">
+						<div class="col-md-3">
+							<?php echo $this->form->dailyLimit->renderLabel(); ?>
+							<?php echo $this->form->dailyLimit; ?>
+						</div>
+						<div class="col-md-3">
+							<?php echo $this->form->monthlyLimit->renderLabel(); ?>
+							<?php echo $this->form->monthlyLimit; ?>
+						</div>
+						<div class="col-md-3">
+							<label class="checkbox-inline">
+								<?php echo $this->form->active; ?>
+								<?php echo $this->form->active->getLabel(); ?>
+							</label>
+						</div>
+					</div>
+					<?php echo $this->form->btnSave; ?>
+				</form>
+			</div>
+		</div>
+	</div>
+</div>

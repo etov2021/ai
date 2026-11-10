@@ -1,0 +1,53 @@
+<?php
+
+$label = 'AI - Модели';
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label);
+
+?>
+<div class="row">
+	<div class="col-12">
+		<div class="card">
+			<div class="card-body">
+				<h2 class="mb-4"><i class="fa fa-cubes fa-fw"></i> <?php echo escape($label); ?></h2>
+				<p>
+					<a class="btn btn-default" href="<?php echo escape($this->homeUrl); ?>">Назад</a>
+					<a class="btn btn-info" href="<?php echo escape($this->importUrl); ?>">Импорт от Ollama</a>
+				</p>
+				<?php foreach ($this->groups as $group) : ?>
+					<h4 class="mt-4">
+						<?php echo escape($group['provider']->name); ?>
+						<a class="btn btn-sm btn-primary" href="<?php echo escape($group['addUrl']); ?>">Добавяне на модел</a>
+					</h4>
+					<div class="table-responsive">
+						<table class="table table-striped">
+							<thead>
+								<tr><th>Модел</th><th>Етикет</th><th>Вход (EUR/1М)</th><th>Изход (EUR/1М)</th><th>Инструменти</th><th>Активен</th><th></th></tr>
+							</thead>
+							<tbody>
+							<?php foreach ($group['rows'] as $row) : $m = $row['item']; ?>
+								<tr>
+									<td><?php echo escape($m->model); ?></td>
+									<td><?php echo escape($m->label); ?></td>
+									<td><?php echo escape(number_format($m->inputPricePerMillion, 4)); ?></td>
+									<td><?php echo escape(number_format($m->outputPricePerMillion, 4)); ?></td>
+									<td><?php echo $m->supportsTools ? 'да' : 'не'; ?></td>
+									<td><?php echo $m->active ? 'да' : 'не'; ?></td>
+									<td><a href="<?php echo escape($row['edit']); ?>">Редактиране</a></td>
+								</tr>
+							<?php endforeach; ?>
+							<?php if (empty($group['rows'])) : ?>
+								<tr><td colspan="7" class="text-muted">Няма модели.</td></tr>
+							<?php endif; ?>
+							</tbody>
+						</table>
+					</div>
+				<?php endforeach; ?>
+				<?php if (empty($this->groups)) : ?>
+					<p class="text-muted">Няма доставчици.</p>
+				<?php endif; ?>
+			</div>
+		</div>
+	</div>
+</div>

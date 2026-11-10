@@ -1,0 +1,87 @@
+<?php
+use Procurements\Model\Table\ProcurementsRelations;
+use Nomenclatures\Model\Clients;
+use Programs\Model\Projects;
+$relations = (new ProcurementsRelations())->getRelations($this->item['id']);
+$countRelations = count($relations);
+$clients = (new Clients())->fetchCachedPairs(null, ['id', 'abbr']);
+$clientsNames = (new Clients())->fetchCachedPairs();
+$projects = (new Projects())->fetchCachedPairs(null, ['id', 'CONCAT_WS(", ", isunNumber, ProjectsLang.name)']);
+$projectsCategories = (new Projects())->fetchCachedPairs(null, ['id', 'category']);
+?>
+<h3><?php echo $this->item['name']; ?></h3>
+<div class="table-responsive">
+	<table class="table table-bordered copyble">
+		<thead>
+			<tr>
+				<th style="width: 5%;"><?php echo translate('Номер'); ?></th>
+				<th style="width: 10%;"><?php echo translate('Възложител'); ?></th>
+				<th style="width: 10%;"><?php echo translate('Срок за подаване'); ?></th>
+				<th><?php echo translate('Име и предмет'); ?></th>
+				<th style="width: 10%;"><?php echo translate('Цена без ДДС'); ?></th>
+				<th style="width: 5%;"><?php echo translate('Евро-финансиране'); ?></th>
+				<th style="width: 20%;"><?php echo translate('Проект'); ?></th>
+			</tr>
+		</thead>
+		<tbody>
+		<?php
+		foreach($relations as $relation) :
+            $controller = 'index';
+            if (strtotime($relation['date']) <= time()) {
+                $controller = 'archive';
+            }
+            $project = '';
+            if ($relation['projectId']) {
+                $category = $projectsCategories[$relation['projectId']] ?? 'euro';
+                $project = $projects[$relation['projectId']] ?? '';
+                if ($project) {
+                    $projectController = 'projects';
+                    if ($category == 'invest') {
+                        $projectController = 'projects-invest';
+                    }
+                    $project = '<a href="' . route_reset('admin', ['module' => 'programs', 'controller' => $projectController, 'action' => 'edit', 'id' => $relation['projectId'], 'hash' => $relation['condition'] == 'open' ? 'tabs-future-programs' : 'tabs-future-programs-archive']) . '">' . $project . '</a>';
+                }
+            }
+		?>
+			<tr>
+				<td class="not-copyble">
+					<a target="_blank" href="<?php echo route_reset('admin', ['module' => 'procurements', 'controller' => $controller, 'action' => 'preview', 'id' => $relation['id']]); ?>">
+						<?php echo translate('ОТП') . '-' . $relation['id']; ?>
+					</a>
+					<br>
+					<br>
+					<?php echo (new DateTime($relation['created']))->format('d.m.Y H:i'); ?>
+				</td>
+				<td>
+    				<?php
+    				$tmp = [];
+    				if ($relation['clients']) {
+    				    foreach (explode(',', $relation['clients']) as $v) {
+    				        $abbr = $clients[$v] ?? '';
+    				        $name = $clientsNames[$v] ?? '';
+    				        if ($abbr && $name) {
+    				            $tmp[] = '<span data-toggle="tooltip" title="' . escape($name) . '">' . $abbr . '</span>';
+    				        }
+    				    }
+    				}
+    				echo implode(', ', $tmp);
+    				?>
+				</td>
+				<td><?php echo ($relation['date'] ? (new DateTime($relation['date']))->format('d.m.Y H:i') : ''); ?></td>
+				<td><?php echo $relation['name']; ?></td>
+				<td><?php echo get_formated_price($relation['price']); ?></td>
+				<td class="not-copyble"><?php echo translate($relation['financingSource'] ? 'Да' : 'Не'); ?></td>
+				<td><?php echo $project; ?></td>
+			</tr>
+		<?php endforeach; ?>
+		</tbody>
+	</table>
+</div>
+<?php $this->start('scripts'); ?>
+<script>
+$('[data-toggle="tooltip"]').tooltip();
+<?php if ($countRelations) : ?>
+$('.tabs li#relations a').append(' (<?php echo count($relations); ?>)');
+<?php endif; ?>
+</script>
+<?php $this->stop(); ?>

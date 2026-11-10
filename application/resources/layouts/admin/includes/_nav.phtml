@@ -1,0 +1,50 @@
+<!-- ========== Left Sidebar Start ========== -->
+<div class="vertical-menu">
+
+    <div data-simplebar class="h-100">
+
+        <!--- Sidemenu -->
+        <div id="sidebar-menu">
+            <!-- Left Menu Start -->
+            <ul class="metismenu list-unstyled" id="side-menu">
+                <li class="menu-title" key="t-menu"><?php echo translate('Меню')?></li>
+				<?php $domain = app('domain', true);?>
+				
+				<?php 
+				if ($domain) {
+				    
+				    $items = $this->helper('Navigation')->navigation('admin.main', $domain->getId());
+				    
+				    foreach ($items as $item) :
+				    
+				    if (!$item->isVisible() || !$item->isAllowed()) {
+				        continue;
+				    }
+
+				    $hasPages = $item->hasPages(true);
+				    $href = $item->getHref();
+				    $active = $item->isActive(true);
+				    ?>
+    				    <li <?php echo $active ? 'class="mm-active"' : ''; ?>>
+    				    	<a href="<?php echo $hasPages ? 'javascript: void(0);' : ($href === '#' ? route() . '#' : $href); ?>" class="<?php echo $hasPages ? 'has-arrow' : ''; ?> waves-effect">
+                                <i class='bx <?php echo $item->getClass() ? $item->getClass() : 'bxs-dashboard'?>'></i>
+                                <span key="t-dashboard"><?php echo $item->getLabel(); ?></span>
+                            </a>
+				    <?php 
+				    if ($hasPages) :
+    				    echo $this->partial(
+    				        'layouts/admin/includes/_nav-child',
+    				        ['items' => $item->getPages()]
+    				        );
+				        endif;
+    				?>
+    					</li>
+    				<?php 
+				    endforeach;
+				}
+				?>
+            </ul>
+        </div>
+        <!-- Sidebar -->
+    </div>
+</div>

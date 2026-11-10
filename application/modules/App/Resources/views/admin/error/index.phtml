@@ -1,0 +1,11 @@
+<?php
+
+$this->extend('shared::layouts/admin/error');
+
+echo '<h1>' . translate($this->message) . '</h1>';
+
+if (is_debug()) {
+    if ($this->exception instanceof \Throwable) {
+        echo '<pre>' . $this->exception->getTraceAsString() . '</pre>';
+    }
+}

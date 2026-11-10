@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="bg" id="extr-page">
+
+<head>
+        
+        <meta charset="utf-8" />
+        <title><?php echo $this->renderSection('title', (isset($this->metaRoute) && isset($this->metaRoute['title']) ? translate('СОФИ') . ' - ' . $this->metaRoute['title'] : translate('СОФИ'))); ?></title>
+        <link rel="shortcut icon" href="templates/admin/images/favicon.ico">
+
+        <?php
+            echo $this->render('layouts/admin/includes/_head');
+        ?>
+
+    </head>
+	<body data-sidebar="dark">
+		<div class="mt-4">
+            <div class="container">
+				<?php echo $this->renderSection('content'); ?>
+			</div>
+		</div>
+		<?php
+            echo $this->render('layouts/admin/includes/_footer-scripts');
+        ?>
+	</body>
+</html>

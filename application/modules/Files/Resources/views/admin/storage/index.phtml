@@ -1,0 +1,220 @@
+<?php
+
+$menu  = $this->helper('Navigation')->navigation('admin.main')->findAllBy('active', 1);
+$label = !empty($menu) ? end($menu)->getLabel() : '';
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label)
+     ;
+
+$identity = identity();
+
+$canDelete = is_allowed('Files\Controller\Admin\Storage@deleteFile');
+$canChangeName = is_allowed('Files\Controller\Admin\Storage@ajaxChangeName');
+
+?>
+
+<div class="row">
+	<div class="col-12">
+		<div class="card">
+			<div class="card-body">
+        		<h2 class="mb-4">
+        			<i class="mdi mdi-source-repository"></i>
+        			<?php echo $label; ?>
+        		</h2>
+                <div class="row">
+                    <div class="col-md-12">
+                    	<form id="storage" class="form-horizontal" action="<?php echo route(); ?>" method="post" enctype="multipart/form-data">
+                           <div class="row mb-3">
+                            	<div class="col-md-12">
+                            	    <div class="dropzone" style="min-height:100px" id="my-dropzone" name="mainFileUploader">
+                                        <div class="fallback">
+                                            <span class="text-center">
+                                            	<span class="font-lg visible-xs-block visible-sm-block visible-lg-block">
+                                            			<input type="file" name="files[]" multiple="multiple">
+                                             	</span>
+                                            </span>
+                                        	<div class="row">
+                                        		<div class="col-md-6 pull-left dz-message">
+                                        			<div class="mb-3">
+                                                        <i class="display-4 text-muted bx bxs-cloud-upload"></i>
+                                                    </div>
+                                            		<?php echo translate('Дръпни и пусни файл'); ?>
+                                            	</div>
+                                        	</div>
+                                        </div>
+                                    </div>
+                                 </div>
+                            </div>
+                		</form>
+                    <?php if ($canDelete) : ?>
+                    	<div class="text-end">
+                        	<a class="btn btn-danger" style="width: 100px" data-handler="delete-selected" data-rel="ids[]" href="javascript:;"><?php echo translate('Изтриване'); ?></a>
+                        </div>
+                    <?php endif; ?>
+                        <table class="table table-bordered table-hover">
+                        	<thead>
+                        		<tr class="table-row-head">
+                        			<th class="table-cell-head"><?php echo translate('Файл'); ?></th>
+                        			<th class="table-cell-head" style="width: 5%;"> </th>
+                        			<th class="table-cell-head" style="width: 10%"><?php echo translate('Размер'); ?></th>
+                    			<?php if ($canDelete) : ?>
+                        			<th class="text-center" style="width: 100px"><input type="checkbox" data-handler="check-all" data-rel="ids[]"></th>
+                    			<?php endif; ?>
+                        		</tr>
+                        	</thead>
+                        	<tbody>
+                        	<?php foreach ($this->files as $file) : ?>
+                        		<tr>
+                        			<td class="table-cell">
+                        			<?php if ($canChangeName) : ?>
+                        				<div class="input-group">
+                        					<span class="input-group-addon"><i class="glyphicon glyphicon-file"></i></span>
+                                            <input name="name" class="form-control" data-id="<?php echo $file['id']; ?>" data-old-value="<?php echo $file['name']; ?>" value="<?php echo $file['name']; ?>" />
+                                        </div>
+                    				<?php else: ?>
+                    					<?php echo $file['name']; ?>
+                    				<?php endif; ?>
+                        			</td>
+                        			<td class="table-cell text-center">
+                        			<?php if ($file->isExists()) : ?>
+                        				<a href="<?php echo route_reset('file-download', ['hash' => $file['hash']]); ?>"><?php echo translate('Свали'); ?></a>
+                    				<?php else: ?>
+                    					<del><?php echo translate('Свали'); ?></del>
+                    				<?php endif; ?>
+                    				</td>
+                        			<td class="table-cell"><?php echo human_filesize($file['size']); ?></td>
+                    			<?php if ($canDelete) : ?>
+                        			<td class="table-cell text-center"><input type="checkbox" name="ids[]" value="<?php echo $file['id']; ?>"></td>
+                    			<?php endif; ?>
+                        		</tr>
+                        	<?php endforeach; ?>
+                        	</tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+       </div>
+	</div>
+</div>
+<?php $this->start('scripts'); ?>
+<script>
+var reload = 0;
+$('input[name="name"]').on('input', function () {
+	var that = $(this);
+	var icon = $(this).closest('.input-group').find('.glyphicon');
+	var id = $(this).attr('data-id');
+	var oldValue = $(this).attr('data-old-value');
+	var value = $(this).val();
+	if (reload) {
+		window.clearTimeout(reload);
+	}
+	reload = window.setTimeout(function () {
+		icon.removeClass('glyphicon-file').addClass('glyphicon-refresh');
+		$.post('<?php echo route_reset('admin', ['module' => 'files', 'controller' => 'storage', 'action' => 'ajax-change-name']); ?>', {id: id, value: value}, function (name) {
+			that.val(name);
+			that.attr('data-old-value', name);
+		}).fail(function () {
+			that.val(oldValue);
+		}).always(function () {
+			icon.removeClass('glyphicon-refresh').addClass('glyphicon-file');
+		});
+	}, 500);
+});
+$('[data-handler="check-all"]').on('click', function () {
+	var checkboxes = $('input[type="checkbox"][name="' + $(this).attr('data-rel') + '"]');
+	if ($(this).is(':checked')) {
+		checkboxes.prop('checked', true);
+	} else {
+		checkboxes.prop('checked', false);
+	}
+});
+$('[data-handler="delete-selected"]').on('click', function () {
+	var ids = $('input[type="checkbox"][name="' +$(this).attr('data-rel') + '"]:checked');
+	if (ids.length) {
+		smart.confirm("Сигурни ли сте, че искате да изтриете избраните записи?", function (yes) {
+			if (yes) {
+				var data = [];
+				ids.each(function () {
+					data.push({name: "id[]", value: $(this).val()});
+				});
+				$('[data-handler="check-all"]').prop('checked', false);
+				ajaxMessage = ids.length === 1 ? 'Файлът е изтрит' : 'Файловете са изтрити';
+				$.post('<?php echo route_reset('admin', ['module' => 'files', 'controller' => 'storage', 'action' => 'delete-file']); ?>', data, function () {
+					ids.each(function () {
+						$(this).closest('tr').remove();
+					});
+				});
+			}
+		});
+	} else {
+		smart.alert("Моля, изберете файлове за изтриване");
+	}
+	return false;
+});
+
+function uploadFiles(files, accept)
+{
+	var accept = $(this).find('input[type="file"]').attr('accept');
+	var acceptedFiles = [];
+
+	if (accept) {
+		accept = accept.split(',');
+        for (var i = 0; i < files.length; ++i) {
+        	var name = files[i].name.toLowerCase();
+            var ext  = name.slice((name.lastIndexOf('.') - 1 >>> 0) + 1);
+            for (var j = 0, k = accept.length; j < k; ++j) {
+            	var type = $.trim(accept[j]);
+            	if (files[i].type == type || (type.substring(0, 1) === '.' && type === ext)) {
+        	    	acceptedFiles.push(files[i]);
+        	    	break;
+        	    }
+            }
+        }
+	} else {
+		acceptedFiles = files;
+	}
+
+	if (acceptedFiles.length === 0) {
+	    return;
+	}
+
+	var formData = new FormData();
+
+	for (var i = 0; i < acceptedFiles.length; ++i) {
+	    formData.append('file[]', acceptedFiles[i]);
+	}
+
+	ajaxMessage = acceptedFiles.length === 1 ? '<?php echo translate('Файлът е добавен'); ?>' : '<?php echo translate('Файловете са добавени'); ?>';
+    $.ajax({
+   	    url: '<?php echo route_reset('admin', ['module' => 'files', 'controller' => 'storage', 'action' => 'upload-files']); ?>',
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function (res) {
+            if ($.trim(res) === '') {
+        		window.location.reload(true);
+            }
+        },
+        error: function (xhr) {
+        }
+    });
+}
+
+$('.dropzone').droppable();
+
+$('.dropzone').on('dragover drop', function(event) {
+    event.stopPropagation();
+    event.preventDefault();
+    if (event.type == 'drop') {
+    	uploadFiles(event.originalEvent.dataTransfer.files, $(this).find('input[type="file"]').attr('accept'));
+    }
+});
+
+$('#storage').on('change', '[type="file"]', function () {
+	uploadFiles(this.files, $(this).attr('accept'));
+	$(this).val('');
+});
+</script>
+<?php $this->stop(); ?>

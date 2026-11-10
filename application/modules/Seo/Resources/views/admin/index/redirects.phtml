@@ -1,0 +1,59 @@
+<?php
+
+$label = translate('Redirects');
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label)
+     ;
+
+?>
+<div class="row">
+	<div class="col-md-12">
+		<h1 class="page-title txt-color-blueDark">
+			<i class="fa fa-pencil-square-o fa-fw "></i>
+			<?php echo $label; ?>
+		</h1>
+	</div>
+</div>
+<form class="form-horizontal" action="<?php echo route(); ?>" method="post" enctype="multipart/form-data">
+	<button class="addRedirect btn btn-success"><?php echo translate('Добавяне'); ?></button>
+	<table class="table table-bordered table-hover" style="margin-top: 18px">
+    	<thead>
+    		<tr>
+    			<th style="width: 45%"><?php echo translate('Шаблон'); ?></th>
+    			<th style="width: 45%"><?php echo translate('Заместител'); ?></th>
+    			<th style="width: 10%"><?php echo translate('Код'); ?></th>
+    		</tr>
+    	</thead>
+    	<tbody>
+	<?php if (!empty($this->items)) : ?>
+    	<?php foreach ($this->items as $item) : ?>
+    		<tr class="row-redirect">
+    			<td><input name="redirects[pattern][]" type="text" class="form-control" value="<?php echo escape($item['pattern']); ?>" /></td>
+    			<td><input name="redirects[replacement][]" type="text" class="form-control" value="<?php echo escape($item['replacement']); ?>" /></td>
+    			<td><input name="redirects[code][]" type="text" class="form-control" value="<?php echo escape($item['code']); ?>" /></td>
+    		</tr>
+    	<?php endforeach; ?>
+	<?php else : ?>
+			<tr class="row-redirect">
+    			<td><input name="redirects[pattern][]" type="text" class="form-control" value="" /></td>
+    			<td><input name="redirects[replacement][]" type="text" class="form-control" value="" /></td>
+    			<td><input name="redirects[code][]" type="text" class="form-control" value="" /></td>
+    		</tr>
+	<?php endif; ?>
+    	</tbody>
+    </table>
+    <div class="text-right">
+    	<input type="submit" class="btn btn-primary" name="btnSave" value="<?php echo translate('Запазване'); ?>" />
+    </div>
+</form>
+<?php $this->start('scripts'); ?>
+<script>
+$('.addRedirect').on('click', function () {
+	var row = $('tr.row-redirect:last').clone(true);
+	row.find('input[type="text"]').val('');
+	$('table tbody').append(row);
+	return false;
+});
+</script>
+<?php $this->stop(); ?>

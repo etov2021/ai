@@ -1,0 +1,26 @@
+<ul style="display:<?php echo isset($this->active) && $this->active ? 'block' : 'none'; ?>">
+<?php
+foreach ($this->items as $item) :
+    if (!$item->isVisible() || !$item->isAllowed()) {
+        continue;
+    }
+    $hasPages = $item->hasPages(true);
+    $href = $item->getHref();
+    $active = $item->isActive(true);
+?>
+    <li class="<?php echo $active ? 'active open' : 'not-active'; ?>">
+		<a <?php echo $item->isTargetBlank() ? 'target="_blank" ' : ''; ?>href="<?php echo $hasPages ? '#' : ($href === '#' ? route() .'#' : $href); ?>">
+			<i class="fa <?php echo $item->getClass() ?: 'fa-file-text-o'; ?>"></i>
+			<span class="menu-item-parent"><?php echo $item->getLabel(); ?></span>
+		</a>
+        <?php
+		if ($hasPages) :
+		    echo $this->partial(
+		        'layouts/admin/includes/_nav-child',
+		        ['items' => $item->getPages(), 'active' => $active]
+	        );
+		endif;
+		?>
+    </li>
+<?php endforeach; ?>
+</ul>

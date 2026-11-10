@@ -1,0 +1,39 @@
+<?php
+
+$label = 'AI - Администрация';
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label);
+
+?>
+<div class="row">
+	<div class="col-12">
+		<div class="card">
+			<div class="card-body">
+				<h2 class="mb-4"><i class="fa fa-magic fa-fw"></i> <?php echo escape($label); ?></h2>
+
+				<?php if (!$this->keyReady) : ?>
+					<div class="alert alert-danger">
+						Липсва или е невалиден <code>AI_MASTER_KEY</code> в средата на уеб сървъра. Без него доставчиците не могат да се четат и записват.
+					</div>
+				<?php endif; ?>
+
+				<p>
+					Разход днес: <strong><?php echo escape(number_format((float) $this->costToday, 4, '.', ' ')); ?> EUR</strong> |
+					този месец: <strong><?php echo escape(number_format((float) $this->costMonth, 4, '.', ' ')); ?> EUR</strong>
+				</p>
+
+				<div class="row">
+					<?php foreach ($this->sections as $section) : ?>
+						<div class="col-md-4 mb-3">
+							<a class="d-block p-3 border rounded" href="<?php echo escape($section['url']); ?>">
+								<strong><?php echo escape($section['title']); ?></strong><br />
+								<span class="text-muted"><?php echo escape($section['text']); ?></span>
+							</a>
+						</div>
+					<?php endforeach; ?>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>

@@ -1,0 +1,67 @@
+<?php
+
+$this->extend('shared::layouts/admin/login');
+
+?>
+<div class="row">
+	<div class="col-12 col-sm-12 col-md-12 col-lg-12">
+		<div class="well no-padding">
+			<form action="<?php echo route(); ?>" method="post" id="login-form" class="smart-form client-form">
+				<header>
+					<?php echo translate('Регистрация'); ?>
+				</header>
+				<fieldset>
+					<section>
+						<?php echo $this->form->email->renderLabel(); ?>
+						<label class="input">
+							<i class="icon-append fa fa-user"></i>
+							<?php echo $this->form->email; ?>
+						</label>
+					</section>
+					<section>
+					    <?php echo $this->form->firstName->renderLabel(); ?>
+						<label class="input">
+    						<?php echo $this->form->firstName; ?>
+						</label>
+					</section>
+					<section>
+						<?php echo $this->form->middleName->renderLabel(); ?>
+						<label class="input">
+    						<?php echo $this->form->middleName; ?>
+						</label>
+					</section>
+					<section>
+						<?php echo $this->form->lastName->renderLabel(); ?>
+						<label class="input">
+    						<?php echo $this->form->lastName; ?>
+						</label>
+					</section>
+					<section>
+						<?php echo $this->form->password->renderLabel(); ?>
+						<label class="input">
+    						<i class="icon-append fa fa-lock"></i>
+    						<?php echo $this->form->password; ?>
+						</label>
+					</section>
+					<section>
+						<?php echo $this->form->repassword->renderLabel(); ?>
+						<label class="input">
+    						<i class="icon-append fa fa-lock"></i>
+    						<?php echo $this->form->repassword; ?>
+						</label>
+					</section>
+				</fieldset>
+				<footer>
+					<?php echo $this->form->btnRegister; ?>
+				</footer>
+			</form>
+		</div>
+	</div>
+</div>
+<?php $this->start('styles'); ?>
+<style>
+.container {
+    max-width: 380px;
+}
+</style>
+<?php $this->stop(); ?>

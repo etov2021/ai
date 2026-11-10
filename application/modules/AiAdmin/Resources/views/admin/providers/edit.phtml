@@ -1,0 +1,69 @@
+<?php
+
+$label = $this->item ? 'AI - Доставчик: ' . $this->item->code : 'AI - Нов доставчик';
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label);
+
+?>
+<div class="row">
+	<div class="col-12">
+		<div class="card">
+			<div class="card-body">
+				<h2 class="mb-4"><i class="fa fa-plug fa-fw"></i> <?php echo escape($label); ?></h2>
+				<form class="form-horizontal" action="<?php echo route(); ?>" method="post" autocomplete="off">
+					<?php echo $this->form->csrf; ?>
+					<div class="row mb-3">
+						<?php if (!$this->item) : ?>
+						<div class="col-md-4">
+							<?php echo $this->form->code->renderLabel(); ?>
+							<?php echo $this->form->code; ?>
+						</div>
+						<?php endif; ?>
+						<div class="col-md-4">
+							<?php echo $this->form->name->renderLabel(); ?>
+							<?php echo $this->form->name; ?>
+						</div>
+						<div class="col-md-4">
+							<?php echo $this->form->type->renderLabel(); ?>
+							<?php echo $this->form->type; ?>
+						</div>
+					</div>
+					<div class="row mb-3">
+						<div class="col-md-6">
+							<?php echo $this->form->baseUrl->renderLabel(); ?>
+							<?php echo $this->form->baseUrl; ?>
+						</div>
+						<div class="col-md-4">
+							<?php echo $this->form->apiKey->renderLabel(); ?>
+							<?php echo $this->form->apiKey; ?>
+							<?php if ($this->item && $this->item->hasApiKey) : ?>
+								<small class="text-muted">Запазен ключ: <?php echo escape($this->item->apiKeyHint); ?></small>
+							<?php endif; ?>
+						</div>
+						<div class="col-md-2">
+							<?php echo $this->form->timeoutSeconds->renderLabel(); ?>
+							<?php echo $this->form->timeoutSeconds; ?>
+						</div>
+					</div>
+					<div class="row mb-3">
+						<div class="col-md-12">
+							<label class="checkbox-inline">
+								<?php echo $this->form->active; ?>
+								<?php echo $this->form->active->getLabel(); ?>
+							</label>
+						</div>
+					</div>
+					<div class="mt-3">
+						<?php echo $this->form->btnSave; ?>
+						<?php echo $this->form->btnApply; ?>
+						<?php if ($this->item && $this->item->hasApiKey) : ?>
+							<?php echo $this->form->btnClearKey; ?>
+						<?php endif; ?>
+						<?php echo $this->form->btnBack; ?>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+</div>

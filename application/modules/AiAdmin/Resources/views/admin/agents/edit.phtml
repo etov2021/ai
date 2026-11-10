@@ -1,0 +1,98 @@
+<?php
+
+$label = $this->item ? 'AI - Агент: ' . $this->item->code : 'AI - Нов агент';
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label);
+
+?>
+<div class="row">
+	<div class="col-12">
+		<div class="card">
+			<div class="card-body">
+				<h2 class="mb-4"><i class="fa fa-android fa-fw"></i> <?php echo escape($label); ?></h2>
+				<form class="form-horizontal" action="<?php echo route(); ?>" method="post" autocomplete="off">
+					<?php echo $this->form->csrf; ?>
+					<div class="row mb-3">
+						<?php if (!$this->item) : ?>
+						<div class="col-md-3">
+							<?php echo $this->form->code->renderLabel(); ?>
+							<?php echo $this->form->code; ?>
+						</div>
+						<?php endif; ?>
+						<div class="col-md-4">
+							<?php echo $this->form->name->renderLabel(); ?>
+							<?php echo $this->form->name; ?>
+						</div>
+						<div class="col-md-5">
+							<?php echo $this->form->modelId->renderLabel(); ?>
+							<?php echo $this->form->modelId; ?>
+						</div>
+					</div>
+					<div class="row mb-3">
+						<div class="col-md-6">
+							<?php echo $this->form->escalationModelId->renderLabel(); ?>
+							<?php echo $this->form->escalationModelId; ?>
+							<small class="text-muted">Основният (евтин) модел отговаря първи. Скъпият се извиква само при нужда и ползва бюджета на агента.</small>
+						</div>
+					</div>
+					<div class="row mb-3">
+						<div class="col-md-12">
+							<?php echo $this->form->systemPrompt->renderLabel(); ?>
+							<?php echo $this->form->systemPrompt; ?>
+						</div>
+					</div>
+					<div class="row mb-3">
+						<div class="col-md-3">
+							<?php echo $this->form->temperature->renderLabel(); ?>
+							<?php echo $this->form->temperature; ?>
+						</div>
+						<div class="col-md-3">
+							<?php echo $this->form->maxTokens->renderLabel(); ?>
+							<?php echo $this->form->maxTokens; ?>
+						</div>
+						<div class="col-md-3">
+							<?php echo $this->form->maxSteps->renderLabel(); ?>
+							<?php echo $this->form->maxSteps; ?>
+						</div>
+						<div class="col-md-3">
+							<?php echo $this->form->timeoutSeconds->renderLabel(); ?>
+							<?php echo $this->form->timeoutSeconds; ?>
+						</div>
+					</div>
+					<div class="row mb-3">
+						<div class="col-md-12">
+							<label class="form-label">Разрешени инструменти (агентът може да вика само отбелязаните)</label>
+							<?php foreach ($this->tools as $tool) : ?>
+								<div>
+									<label class="checkbox-inline">
+										<input type="checkbox" name="tools[]" value="<?php echo escape($tool->code); ?>"<?php echo in_array($tool->code, $this->selectedTools, true) ? ' checked="checked"' : ''; ?> />
+										<strong><?php echo escape($tool->code); ?></strong>
+										<?php echo $tool->active ? '' : ' (неактивен)'; ?>
+										- <?php echo escape($tool->name); ?>
+									</label>
+								</div>
+							<?php endforeach; ?>
+							<?php if (empty($this->tools)) : ?>
+								<span class="text-muted">Няма дефинирани инструменти.</span>
+							<?php endif; ?>
+						</div>
+					</div>
+					<div class="row mb-3">
+						<div class="col-md-12">
+							<label class="checkbox-inline">
+								<?php echo $this->form->active; ?>
+								<?php echo $this->form->active->getLabel(); ?>
+							</label>
+						</div>
+					</div>
+					<div class="mt-3">
+						<?php echo $this->form->btnSave; ?>
+						<?php echo $this->form->btnApply; ?>
+						<?php echo $this->form->btnBack; ?>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+</div>

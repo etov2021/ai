@@ -1,0 +1,3 @@
+<?php foreach (flash()->getMessages() as $message) : ?>
+<div class="alert alert-<?php echo $message['type']; ?>" role="alert"><?php echo translate($message['message']); ?></div>
+<?php endforeach; ?>

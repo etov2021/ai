@@ -1,0 +1,28 @@
+
+<ul class="sub-menu" aria-expanded="false">
+ 
+<?php
+foreach ($this->items as $item) :
+    if (!$item->isVisible() || !$item->isAllowed()) {
+        continue;
+    }
+    $hasPages = $item->hasPages(true);
+    $href = $item->getHref();
+    $active = $item->isActive(true);
+?>
+	<li <?php echo $active ? 'class="mm-active"' : ''; ?>>
+		<a <?php echo $item->isTargetBlank() ? 'target="_blank" ' : ''; ?> href="<?php echo $hasPages ? 'javascript: void(0);' : ($href === '#' ? route() .'#' : $href); ?>" <?php echo $hasPages ? 'class="has-arrow waves-effect"' : ''; ?>>
+			<span key="t-calendar"><?php echo $item->getLabel(); ?></span>
+		</a>
+		
+        <?php
+		if ($hasPages) :
+		    echo $this->partial(
+		        'layouts/admin/includes/_nav-child',
+		        ['items' => $item->getPages()]
+	        );
+		endif;
+		?>
+    </li>
+<?php endforeach; ?>
+</ul>

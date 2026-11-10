@@ -1,0 +1,77 @@
+<?php
+
+use App\Helper\GridPersonalize;
+
+echo '<div id="gridPersonalizeSortable">';
+foreach ($this->grid->getColumns() as $column) {
+    $visible = GridPersonalize::sessionGridColumnOption($this->gridName, $column->getName(), 'visible');
+    if ($visible === null) {
+        $visible = $column->isVisible();
+    }
+    $options = $column->getOptions();
+    $wrap = GridPersonalize::sessionGridColumnOption($this->gridName, $column->getName(), 'wrap');
+    if ($wrap === null && isset($options['export_wrap'])) {
+        $wrap = $options['export_wrap'];
+    }
+    $width = GridPersonalize::sessionGridColumnOption($this->gridName, $column->getName(), 'width');
+    if ($width === null && isset($options['export_width'])) {
+        $width = $options['export_width'];
+    }
+    echo '<div id="sort-' . $column->getName() . '" style="padding: 5px; border: 1px solid #ddd; background-color: #f2f2f2; margin-bottom: 5px;">';
+    echo '<input style="vertical-align: top;" type="checkbox" data-handler="grid-column-visible" data-column="' . $column->getName() . '" value="1" name="gridPersonalize[' . $column->getName() . ']"' . ($visible ? ' checked' : '') . ' /> ';
+    echo $column->getTitle();
+    echo '<div style="float: right; margin-left: 5px;">width <input style="vertical-align: top; width: 50px;" type="text" data-handler="grid-column-width" data-column="' . $column->getName() . '" value="' . $width . '" /></div>';
+    echo '<div style="float: right;">wrap <input style="vertical-align: top;" type="checkbox" data-handler="grid-column-wrap" data-column="' . $column->getName() . '" value="1"' . ($wrap ? ' checked' : '') . ' /></div>';
+    echo '</div>';
+}
+echo '</div>';
+
+$orientation = GridPersonalize::sessionGridOption($this->gridName, 'orientation', null, 'landscape');
+$size = GridPersonalize::sessionGridOption($this->gridName, 'size', null, 8);
+
+?>
+
+<label style="padding-top: 10px;"><?php echo translate('Ориентация'); ?></label>
+<select class="form-control" name="orientation" data-handler="change-personalize">
+	<option value="landscape"<?php echo $orientation == 'landscape' ? ' selected' : ''; ?>><?php echo translate('Пейзажна ориентация'); ?></option>
+	<option value="portrait"<?php echo $orientation == 'portrait' ? ' selected' : ''; ?>><?php echo translate('Портретна ориентация'); ?></option>
+</select>
+<label style="padding-top: 10px;"><?php echo translate('Размер'); ?></label>
+<select class="form-control" name="size" data-handler="change-personalize">
+	<option value="8"<?php echo $size == 8 ? ' selected' : ''; ?>><?php echo translate('А3'); ?></option>
+	<option value="9"<?php echo $size == 9 ? ' selected' : ''; ?>><?php echo translate('А4'); ?></option>
+	<option value="1"<?php echo $size == 1 ? ' selected' : ''; ?>><?php echo translate('Писмо'); ?></option>
+	<option value="3"<?php echo $size == 3 ? ' selected' : ''; ?>><?php echo translate('Таблоид'); ?></option>
+</select>
+
+<script>
+$('[data-handler="grid-column-wrap"]').on('click', function () {
+	$.post('<?php echo route(); ?>', {wrap: $(this).attr('data-column'), checked: ($(this).is(':checked') ? 1 : 0)}, function () {
+
+	});
+});
+$('[data-handler="grid-column-visible"]').on('click', function () {
+	$.post('<?php echo route(); ?>', {visible: $(this).attr('data-column'), checked: ($(this).is(':checked') ? 1 : 0)}, function () {
+
+	});
+});
+var timeout = 0;
+$('[data-handler="grid-column-width"]').on('input', function () {
+	if (timeout) {
+		window.clearTimeout(timeout);
+	}
+	var options = {width: $(this).attr('data-column'), value: $(this).val()};
+	timeout = window.setTimeout(function () {
+		$.post('<?php echo route(); ?>', options, function () {
+
+		});
+	}, 250);
+});
+$('[data-handler="change-personalize"]').on('change', function () {
+	var options = {};
+	options[$(this).attr('name')] = $(this).val();
+	$.post('<?php echo route(); ?>', options, function () {
+
+	});
+});
+</script>

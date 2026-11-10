@@ -1,0 +1,84 @@
+<?php
+
+$label = translate($this->item->getId() ? 'Редактиране' : 'Добавяне');
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label)
+     ->section('styles', '<link href="templates/admin/js/jstree/themes/default/style.min.css" rel="stylesheet" type="text/css" />')
+     ->section('scripts', '<script src="templates/admin/js/jstree/jstree.min.js"></script>')
+     ;
+
+$this->hookToMenu('admin.main', 'admin.groups', $label);
+
+?>
+<div class="row">
+	<div class="col-md-12">
+		<div class="card">
+    		<div class="card-body">
+        		<h2 class="mb-4">
+        			<i class="mdi mdi-face-profile"></i>
+        			<?php echo $label; ?>
+        		</h2>
+                <form class="form-horizontal" action="<?php echo route(); ?>" method="post" enctype="multipart/form-data">
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <?php echo $this->form->name->renderLabel(); ?>
+                            <?php echo $this->form->name; ?>
+                        </div>
+                        <div class="col-md-3">
+                            <?php echo $this->form->alias->renderLabel(); ?>
+                            <?php echo $this->form->alias; ?>
+                        </div>
+                        <div class="col-md-3">
+                            <?php echo $this->form->parentId->renderLabel(); ?>
+                            <?php echo $this->form->parentId; ?>
+                        </div>
+                       
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-9">
+                            <?php echo $this->form->customRights->renderLabel(); ?>
+                            <?php echo $this->form->customRights; ?>
+                        </div>
+                        <div class="col-md-3">
+                        	<label style="display: block"><?php echo $this->form->fileManagerPersonalFolder->getLabel(); ?></label>
+                        	<?php echo $this->form->fileManagerPersonalFolder; ?>
+        				</div>
+                    </div>
+                    <div class="row mb-3" style="margin-bottom: 0">
+                        <div class="col-md-12">
+                            <div id="jstree"></div>
+                            <input type="hidden" name="rights" value="" />
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <?php echo $this->form->btnSave; ?>
+                        <?php echo $this->form->btnApply; ?>
+                        <?php echo $this->form->btnBack; ?>
+                    </div>
+                </form>
+        
+        	</div>
+        </div>
+
+	</div>
+</div>
+<?php $this->start('scripts'); ?>
+<script>
+$(function () {
+	$('#jstree').jstree({
+		'plugins' : ['checkbox', 'wholerow'],
+		'checkbox' : {
+		    /*'keep_selected_style' : false*/
+	    },
+		'core' : {
+		    'data' : <?php echo json_encode(isset($this->tree) ? $this->tree : []); ?>,
+		    'expand_selected_onload' : false
+		}
+	});
+	$('input[name="btnSave"], input[name="btnApply"]').on('click', function () {
+		$('input[name="rights"]').val(JSON.stringify($('#jstree').jstree().get_bottom_selected()));
+	});
+});
+</script>
+<?php $this->stop(); ?>

@@ -1,0 +1,40 @@
+<?php
+
+$languages = app('languages', true);
+if (!$languages || !$this->item instanceof Micro\Model\Entity\TranslationInterface) {
+    return;
+}
+
+echo '<a href="' . route(null, ['id' => $this->value, 'action' => 'edit']) . '">' . translate('Детайли') . '</a>';
+return;
+
+if ($this->item instanceof Domains\Model\Entity\DomainInterface) {
+    $domainSettings = $this->item->getDomainSettings();
+    if (!isset($domainSettings['domain_depended_language']) || $domainSettings['domain_depended_language']) {
+        $currentDomain = app('domain', true);
+        if ($currentDomain && $currentDomain->getLanguages()) {
+            $domainLanguages = explode(',', $currentDomain->getLanguages());
+            $reordered = [];
+            foreach ($domainLanguages as $domainLanguageId) {
+                foreach ($languages as $languageCode => $language) {
+                    if ($language->getId() == $domainLanguageId) {
+                        $reordered[$languageCode] = $language;
+                        break;
+                    }
+                }
+            }
+            $languages = $reordered;
+        }
+    }
+}
+
+?>
+<div style="white-space: nowrap">
+<?php
+foreach ($languages as $language) :
+    if ($language instanceof Micro\Translator\Language\LanguageInterface) :
+        echo '<span style="padding-right: 5px;' . ($this->item->hasTranslation($language) ? '' : ' opacity: 0.3') . '"><a href="' . route(null, [Micro\Application\Controller\Crud::CURRENT_LANG_KEY => $language->getCode(), 'id' => $this->value, 'action' => 'edit']) . '"><img src="templates/admin/images/blank.gif" class="flag flag-' . $language->getLocale() . '" alt="' . $language->getName() . '"></a></span>';
+    endif;
+endforeach;
+?>
+</div>

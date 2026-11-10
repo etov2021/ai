@@ -1,0 +1,47 @@
+<?php
+
+$label = translate($this->item->getId() ? 'Редактиране' : 'Добавяне');
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label)
+     ;
+
+$this->hookToMenu('admin.main', 'admin.pages', $label);
+
+$currentUrl = server_url(route());
+
+?>
+<div class="row">
+	<div class="col-md-12">
+		<div class="card">
+    		<div class="card-body">
+        		<h2 class="mb-4">
+        			<i class="mdi mdi-clipboard-outline"></i>
+        			<?php echo $label; ?>
+        		</h2>
+                <div>
+                	<ul class="nav nav-tabs nav-tabs-custom nav-justified" role="tablist">
+                		<li class="nav-item">
+                			<a href="<?php echo $currentUrl; ?>#tabs-form" class="nav-link active" data-bs-toggle="tab" role="tab"><?php echo translate('Страница'); ?></a>
+                		</li>
+                	<?php if ($this->item->getId()) : ?>
+                		<li class="nav-item">
+                			<a href="<?php echo $currentUrl; ?>#tabs-meta" class="nav-link" data-bs-toggle="tab" role="tab"><?php echo translate('Мета информация'); ?></a>
+                		</li>
+                	<?php endif; ?>
+                	</ul>
+                	<div class="tab-content p-3 rounded-bottom mt-5">
+                    	<div id="tabs-form" class="tab-pane active" role="tabpanel">
+                    		<?php echo $this->render('admin/index/_form'); ?>
+                    	</div>
+                        <?php if ($this->item->getId()) : ?>
+                        	<div id="tabs-meta" class="tab-pane" role="tabpanel">
+                        		<?php echo $this->render('admin::tab/_meta'); ?>
+                        	</div>
+                        <?php endif; ?>
+               		 </div>
+                </div>
+        	</div>
+        </div>
+	</div>
+</div>

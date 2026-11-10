@@ -1,0 +1,12 @@
+<?php
+
+if (in_array($this->item['action'], ['edit', 'add']) && is_numeric($this->value)) {
+    $route = json_decode($this->item['params'], true);
+    if ($this->item['action'] === 'add') {
+        $route['params']['action'] = 'edit';
+        $route['params']['id']     = $this->value;
+    }
+    echo '<a target="_blank" href="' . route_reset($route['route'], $route['params']) . '">#' . $this->value . '</a>';
+} else {
+    echo $this->value;
+}

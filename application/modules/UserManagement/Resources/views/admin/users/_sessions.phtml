@@ -1,0 +1,18 @@
+<a class="kill-session" href="<?php echo route(null, ['action' => 'kill-session', 'id' => $this->item['id']]); ?>"><?php echo translate('Приключване на сесията'); ?></a>
+<?php
+$refreshTime = $this->item['refreshTime'] ? new Datetime($this->item['refreshTime']) : null;
+if (!function_exists('icy_date_diff')) {
+    function icy_date_diff($date_1, $date_2)
+    {
+        $diff = $date_1->diff($date_2);
+        if ($diff->i >= 1) {
+            return $diff->i . ' ' . translate('min ago');
+        } else {
+            return translate('Just now');
+        }
+    }
+}
+if ($refreshTime) {
+    //echo '<p>' . icy_date_diff($refreshTime, new Datetime()) . '</p>';
+}
+?>

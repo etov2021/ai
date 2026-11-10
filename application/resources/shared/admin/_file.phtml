@@ -1,0 +1,85 @@
+<?php
+
+use Micro\Form\Form;
+use Files\Entity\FileInterface;
+use Files\Table\Files;
+
+if (!isset($this->type)
+    || !isset($this->item)
+    || !$this->item instanceof FileInterface
+    || !isset($this->form)
+    || !$this->form instanceof Form
+    || !$this->form->{$this->type}
+) :
+    return;
+endif;
+
+$typeElement = $this->form->{$this->type};
+$typeElementEditor = $this->form->{$this->type . '-editor'};
+
+$typeElement->setShowErrors(0);
+
+if ($typeElementEditor) :
+    $typeElementEditor->setClass('form-control');
+    $typeElementEditor->setShowErrors(0);
+    $typeElement->setAttribute('onchange', "$('#" . $typeElementEditor->getAttribute('id') . "').val('');");
+endif;
+
+$settings = $this->item->getFileSettings();
+$settings = isset($settings[$this->type]) ? $settings[$this->type] : [];
+
+$files = $this->item->getFiles($this->type);
+
+?>
+
+<div class="row">
+    <div class="col-md-6">
+        <?php echo $this->form->{$this->type}->renderLabel(); ?>
+        <?php if (isset($settings['required']) && $settings['required'] && empty($files)) : ?>
+        	<span class="asterisk">*</span>
+        <?php endif; ?>
+        <?php echo $typeElement; ?>
+    <?php if ($typeElementEditor) : ?>
+        <span style="padding: 5px 0; display: block;"><?php echo translate('или'); ?></span>
+        <div class="fileManagerContainer">
+        	<div class="input-group">
+        		<span class="input-group-btn">
+              		<a href="js/plugins/filemanager/dialog.php?&type=<?php echo isset($settings['editorType']) ? $settings['editorType'] : 0; ?>&view=0&relative_url=1&lang=bg_BG&field_id=<?php echo $typeElementEditor->getAttribute('id'); ?>" class="fileManagerButton btn btn-default" type="button">
+            			<?php echo translate('File manager'); ?>
+            		</a>
+				</span>
+				<?php echo $typeElementEditor; ?>
+            </div>
+        	<div class="fileManagerDialog"></div>
+        </div>
+    <?php endif; ?>
+        <?php echo $typeElement->renderErrors(); ?>
+    </div>
+    <div class="col-md-6">
+    	<table style="max-width: 500px; margin-top: 10px;" class="table">
+        <?php
+        foreach ($files as $file) :
+            $exists = $file->isExists();
+            $isImage = $file->isImage();
+            $delete = '<td class="text-center" style="width: 50px"><i style="cursor: pointer;" class="fa fa-remove" data-ajax-message="' . translate('Файлът е изтрит') . '" data-handler="removeImage" data-confirm="' .  escaper('htmlAttr', translate("Сигурни ли сте, че искате да изтриете файла?")) . '" data-remove-url="' . route_reset('admin', ['module' => 'files', 'controller' => 'index', 'action' => 'delete-file', 'id' => $file['id']]) . '" data-id="' . $file['id'] . '"></i></td>';
+            if (isset($settings['required']) && $settings['required'] && count($files) === 1) :
+                $delete = '';
+            endif;
+        ?>
+        	<tr>
+        		<?php echo $delete; ?>
+        		<td>
+                    <a target="_blank" href="<?php echo route_reset('file-download', ['hash' => $file['hash']]); ?>">
+                        <?php echo ($exists ? '' : '<strike>'); ?>
+                        <?php echo ($isImage ? '<img class="img-thumbnail" src="' . $file->getUrl() . '">' : $file['name']); ?>
+                        <?php echo ($exists ? '' : '</strike>'); ?>
+                    </a>
+            <?php if (isset($this->customName) && $this->customName) : ?>
+                	<input type="text" name="fileNames[<?php echo $file['id']; ?>]" placeholder="<?php echo translate('наименование'); ?>" value="<?php echo $file['customName']; ?>" class="form-control" />
+            <?php endif; ?>
+            	</td>
+            </tr>
+        <?php endforeach; ?>
+		</table>
+	</div>
+</div>

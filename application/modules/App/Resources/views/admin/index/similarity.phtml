@@ -1,0 +1,49 @@
+<?php
+
+$label = translate('Similarity');
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label);
+
+?>
+
+<div class="row">
+	<div class="col-md-12">
+		<h1 class="page-title txt-color-blueDark">
+			<i class="fa fa-table fa-fw "></i>
+			<?php echo $label; ?>
+		</h1>
+	</div>
+</div>
+<div class="row">
+	<div class="col-md-12">
+		<form class="form-horizontal" action="<?php echo route(); ?>" method="post" enctype="multipart/form-data">
+    		<div class="panel panel-default">
+                <div class="panel-body">
+                	<div class="form-group">
+    					<div class="col-md-12">
+                			<textarea class="form-control" rows="5" name="text1"><?php echo $this->text1; ?></textarea>
+        				</div>
+    				</div>
+    				<div class="form-group">
+    					<div class="col-md-12">
+                			<textarea class="form-control" rows="5" name="text2"><?php echo $this->text2; ?></textarea>
+        				</div>
+    				</div>
+				<?php
+				if ($this->similarity !== null) :
+				    echo '<table class="table table-bordered">';
+    				foreach ($this->similarity as $k => $v) {
+    				    echo '<tr><th style="width: 100px">' . $k . '</th><td>' . round($v, 2) . '%</td></tr>';
+    				}
+    				echo '</table>';
+				?>
+        		<?php endif; ?>
+                </div>
+            	<div class="panel-footer text-right">
+            		<input type="submit" class="btn btn-primary" name="btnSave" value="<?php echo translate('Calculate'); ?>" />
+            	</div>
+            </div>
+        </form>
+    </div>
+</div>
