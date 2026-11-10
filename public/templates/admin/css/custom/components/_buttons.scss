@@ -1,0 +1,180 @@
+//
+// _buttons.scss
+//
+
+button,
+a {
+  outline: none !important;
+}
+
+// Rounded Buttons
+.btn-rounded {
+  border-radius: 30px;
+}
+
+.btn-dark,
+.btn-secondary {
+  color: $gray-200 !important;
+}
+
+.btn-outline-light {
+  color: var(--#{$prefix}gray-900);
+}
+
+.btn-outline-dark,
+.btn-dark {
+  &:not(:disabled):not(.disabled):active,
+  &:not(:disabled):not(.disabled).active,
+  .show > &.dropdown-toggle,
+  &:hover {
+    color: var(--#{$prefix}light);
+  }
+}
+
+// Button Border
+@each $color, $value in $theme-colors {
+  .btn-#{$color} {
+    border-bottom: 1.5px solid var(--#{$prefix}table-border-color);
+  }
+}
+
+// dark
+[data-bs-theme="dark"] {
+  .btn-light {
+    color: $white !important;
+    background-color: var(--#{$prefix}light);
+    border-color: var(--#{$prefix}light);
+
+    &:hover {
+      color: $white !important;
+      background-color: rgba(var(--#{$prefix}light-rgb), 0.75);
+      border-color: rgba(var(--#{$prefix}light-rgb), 0.75);
+    }
+  }
+
+  .btn-check:focus+.btn-light,
+  .btn-check:focus+.btn-outline-light,
+  .btn-check:focus+.btn-soft-light,
+  .btn-light:focus,
+  .btn-outline-light:focus,
+  .btn-soft-light:focus {
+    color: $white !important;
+    background-color: rgba(var(--#{$prefix}light-rgb), 0.75);
+    // border-color: rgba(var(--#{$prefix}light-rgb), 0.75);
+  }
+
+  .btn-check:active+.btn-light,
+  .btn-check:active+.btn-outline-light,
+  .btn-check:active+.btn-soft-light,
+  .btn-check:checked+.btn-light,
+  .btn-check:checked+.btn-outline-light,
+  .btn-check:checked+.btn-soft-light,
+  .btn-light.active,
+  .btn-light:active,
+  .btn-outline-light.active,
+  .btn-outline-light:active,
+  .btn-soft-light.active,
+  .btn-soft-light:active,
+  .show>.btn-light.dropdown-toggle,
+  .show>.btn-outline-light.dropdown-toggle,
+  .show>.btn-soft-light.dropdown-toggle {
+    color: $white !important;
+    background-color: rgba(var(--#{$prefix}light-rgb), 0.75);
+    // border-color: rgba(var(--#{$prefix}light-rgb), 0.75);
+  }
+
+  // dark
+
+  .btn-dark {
+    color: $white;
+    background-color: var(--#{$prefix}dark);
+    border-color: var(--#{$prefix}dark);
+
+    &:hover {
+      color: var(--#{$prefix}light);
+      background-color: rgba(var(--#{$prefix}dark-rgb), 0.75);
+      border-color: rgba(var(--#{$prefix}dark-rgb), 0.75);
+    }
+  }
+
+  .btn-check:focus+.btn-dark,
+  .btn-check:focus+.btn-outline-dark,
+  .btn-check:focus+.btn-soft-dark,
+  .btn-dark:focus,
+  .btn-outline-dark:focus,
+  .btn-soft-dark:focus {
+    color: $white;
+    background-color: rgba(var(--#{$prefix}dark-rgb), 0.75);
+    border-color: rgba(var(--#{$prefix}dark-rgb), 0.75);
+  }
+
+  .btn-check:active+.btn-dark,
+  .btn-check:active+.btn-outline-dark,
+  .btn-check:active+.btn-soft-dark,
+  .btn-check:checked+.btn-dark,
+  .btn-check:checked+.btn-outline-dark,
+  .btn-check:checked+.btn-soft-dark,
+  .btn-dark.active,
+  .btn-dark:active,
+  .btn-outline-dark.active,
+  .btn-outline-dark:active,
+  .btn-soft-dark.active,
+  .btn-soft-dark:active,
+  .show>.btn-dark.dropdown-toggle,
+  .show>.btn-outline-dark.dropdown-toggle,
+  .show>.btn-soft-dark.dropdown-toggle {
+    color: var(--#{$prefix}light);
+    background-color: rgba(var(--#{$prefix}dark-rgb), 0.75);
+    border-color: rgba(var(--#{$prefix}dark-rgb), 0.75);
+  }
+
+  // outline
+
+  .btn-outline-light {
+    color: $white !important;
+    border-color: var(--#{$prefix}light);
+
+    &:hover {
+      color: $white;
+      background-color: rgba(var(--#{$prefix}light-rgb), 0.75);
+      border-color: rgba(var(--#{$prefix}light-rgb), 0.75);
+    }
+  }
+
+  .btn-outline-dark {
+    color: $white !important;
+    border-color: var(--#{$prefix}dark);
+
+    &:hover {
+      color: var(--#{$prefix}light);
+      background-color: rgba(var(--#{$prefix}dark-rgb), 0.75);
+      border-color: rgba(var(--#{$prefix}dark-rgb), 0.75);
+    }
+  }
+
+  // soft
+
+  .btn-soft-light {
+    color: $white !important;
+    background-color: rgba(var(--#{$prefix}light-rgb), 0.1);
+
+    &:hover {
+      color: $white !important;
+      background-color: var(--#{$prefix}light);
+    }
+  }
+
+  .btn-soft-dark {
+    color: $white !important;
+    background-color: rgba(var(--#{$prefix}dark-rgb), 0.1);
+
+    &:hover {
+      color: var(--#{$prefix}light);
+      background-color: var(--#{$prefix}dark);
+    }
+  }
+
+  .btn-close{
+  background: transparent url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23fff'%3e%3cpath d='M.293.293a1 1 0 011.414 0L8 6.586 14.293.293a1 1 0 111.414 1.414L9.414 8l6.293 6.293a1 1 0 01-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 01-1.414-1.414L6.586 8 .293 1.707a1 1 0 010-1.414z'/%3e%3c/svg%3e") center/.8em auto no-repeat;
+  }
+}

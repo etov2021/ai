@@ -1,0 +1,55 @@
+//
+// gallary pages.scss
+//
+
+// gallary
+
+.gallery {
+    // .docs-btn{
+    //     background-color: $body-bg;
+    // }
+    .card-header{
+        background-color: transparent;
+    }
+    .gallery-btn {
+        li {
+            position: relative;
+            cursor: pointer;
+
+            &::before {
+                position: absolute;
+                content: "";
+                top: 100%;
+                left: 0;
+                width: 0%;
+                height: 2px;
+                background-color: #{$gray-700};
+                border-radius: 5px;
+                transition: all 0.5s ease-in;
+            }
+
+            &:hover::before,
+            &:active::before,
+            &.active::before {
+                width: 100%;
+            }
+
+        }
+    }
+
+    .gallery-wrapper {
+        .gallery-box {
+            .gallery-container{
+                overflow: hidden;
+                img {
+                    transition: all 0.5s ease-in;
+                    &:hover {
+                        opacity: 0.85;
+                        transform: scale(1.2);
+                    }
+                }
+            }
+            
+        }
+    }
+}

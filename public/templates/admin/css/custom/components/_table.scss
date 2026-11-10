@@ -1,0 +1,46 @@
+//
+// _table.scss
+//
+
+.table {
+    // th {
+    //     // font-weight: $font-weight-bold;
+    // }
+
+    .table-light {
+        color: var(--#{$prefix}body-color);
+        border-color: var(--#{$prefix}table-border-color);
+        background-color: $table-head-bg;
+    }
+
+    tr{
+      td{
+        a.text-dark{
+          color: var(--#{$prefix}body-color) !important;
+        }
+      }
+    }
+   
+}
+
+.table-bordered {
+    border: var(--#{$prefix}table-border-color);
+  }
+  
+  // .table>:not(:first-child){
+  //   border-top: (0 * $table-border-width) solid $table-group-separator-color;
+  // }
+  
+  .table-dark>:not(:last-child)>:last-child>*{
+    border-bottom-color: var(--#{$prefix}table-dark-border-color);
+  }
+
+
+.table-nowrap {
+    th,
+    td {
+        white-space: nowrap;
+    }
+}
+
+

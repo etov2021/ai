@@ -1,0 +1,35 @@
+//
+// team pages.scss
+//
+
+// team
+
+.team {
+  .team-box {
+    a {
+      min-width: 100px;
+
+      &:active {
+        color: $gray-100;
+        box-shadow: 0 0 0;
+        border: none;
+        background: $primary;
+      }
+
+      &:hover {
+        border: none;
+        box-shadow: none;
+      }
+    }
+  }
+
+  .team-social {
+    a:hover {
+      color: $primary !important;
+    }
+  }
+}
+
+.team-btn{
+  background-color: var(--#{$prefix}secondary-bg);
+}

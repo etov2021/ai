@@ -1,0 +1,101 @@
+//
+// Widgets.scss
+//
+
+
+.balance-img{
+   &:after{
+    position: absolute;
+    content: '';
+    background-image: url(../images/balance-img.png);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+   }
+}
+
+
+.main-chart {
+    .chart-border-left {
+        border-left: 1.4px solid var(--#{$prefix}border-color);
+        padding: 2px 20px;
+
+        &:last-child {
+            margin-right: 0px;
+        }
+    }
+}
+
+/* Activity */
+
+.activity-feed {
+    list-style: none;
+
+    .feed-item {
+        position: relative;
+        padding-bottom: 27px;
+        padding-left: 16px;
+        border-left: 2px solid var(--#{$prefix}border-color);
+
+        &:after {
+            content: "";
+            display: block;
+            position: absolute;
+            top: 4px;
+            left: -6px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            border: 2px solid $primary;
+            background-color: $card-bg;
+        }
+
+        &:last-child {
+            border-color: transparent;
+        }
+    }
+}
+
+
+// resent files
+
+.recent-fills{
+    li{
+        &:last-child{
+            top: -10px;
+            position: relative;
+            left: -15px;
+        }
+    }
+}
+
+
+
+// ecommerce cart
+
+.visa-card{
+    .visa-logo{
+        line-height: 0.5;
+    }
+
+    .visa-pattern{
+        position: absolute;
+        font-size: 385px;
+        color: rgba($white, 0.05);
+        line-height: 0.4;
+        right: 0px;
+        bottom: 0px;
+    }
+}
+
+.monthly-limits{
+    width: 110px;
+}
+
+
+// card 
+
+.card-info{
+    position: relative;
+    z-index: 1;
+}
