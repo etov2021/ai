@@ -1,0 +1,19 @@
+{
+	"name" : "core/package",
+	"description" : "ICYGEN PHP Micro Core",
+	"license" : "GPL",
+	"type" : "zend-library",
+	"authors" : [{
+			"name" : "ICYGEN",
+			"email" : "vchavdarov@icygen.com"
+		}
+	],
+	"require" : {
+		"composer/installers" : "~1.0"
+	},
+	"autoload" : {
+		"psr-0" : {
+			"core" : "src"
+		}
+	}
+}
