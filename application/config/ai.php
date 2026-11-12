@@ -6,7 +6,12 @@ return [
         // Разрешава доставчици на локални/вътрешни адреси (напр. Ollama). Изключено по подразбиране заради SSRF.
         'allow_private_hosts' => true,
         // Класове на разширения (RAG, MCP, workflows, agent-to-agent), реализиращи Ai\Contract\ExtensionInterface.
-        'extensions' => [\AiAdmin\Extension\GmailExtension::class],
+        'extensions' => [\AiAdmin\Extension\GmailExtension::class, \AiAdmin\Extension\McpExtension::class],
+        // MCP сървъри (Streamable HTTP). Агентът вижда само инструментите от allowed_tools; токенът се чете от променливата token_env.
+        // Пример: 'docs' => ['url' => 'https://example.com/mcp', 'token_env' => 'MCP_DOCS_TOKEN', 'allowed_tools' => ['search'], 'timeout' => 20],
+        'mcp' => [
+            'servers' => [],
+        ],
         // Периодично четене на пощата (cronjobs/gmail-poll.php). agent = код на агент за анализ; празно = само известия.
         'gmail' => [
             'query' => 'in:inbox newer_than:2d',

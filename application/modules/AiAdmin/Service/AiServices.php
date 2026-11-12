@@ -14,6 +14,7 @@ use Ai\Gmail\GmailClient;
 use Ai\Gmail\GmailOAuth;
 use Ai\Gmail\GmailPoller;
 use Ai\Gmail\MailRepository;
+use Ai\Mcp\McpToolProvider;
 use Ai\Http\CurlClient;
 use Ai\Limits\RateLimiter;
 use Ai\Limits\UsageGuard;
@@ -201,6 +202,25 @@ final class AiServices
             self::env('GOOGLE_CLIENT_SECRET'),
             fn (): ?string => $this->gmailAccounts()->refreshToken(),
         ));
+    }
+
+    /** Токените идват от променливите на средата, посочени в token_env; без повторни опити, за да не се изпълни инструмент два пъти. */
+    public function mcpProvider(): McpToolProvider
+    {
+        return $this->once('mcpProvider', function () {
+            $servers = [];
+            foreach ((array) config('ai.mcp.servers', []) as $code => $server) {
+                if (!is_array($server)) {
+                    continue;
+                }
+                if (isset($server['token_env'])) {
+                    $server['token'] = self::env((string) $server['token_env']);
+                }
+                $servers[(string) $code] = $server;
+            }
+
+            return new McpToolProvider($servers, new CurlClient(0), $this->policy(), data_path('cache'));
+        });
     }
 
     public function fileAnalyzer(): FileAnalyzer

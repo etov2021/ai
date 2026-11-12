@@ -77,7 +77,8 @@ class Models extends BaseController
     public function editAction()
     {
         $providerCode = (string) $this->request->getParam('id', '');
-        $modelId = (string) $this->request->getParam('model', '');
+        // Само от адреса: getParam() чете и тялото на заявката, където полето "model" на формата би се взело за редактиране на съществуващ модел.
+        $modelId = (string) ($this->request->getQueryParams()['model'] ?? '');
 
         $provider = $this->safely(fn () => $this->ai()->providers()->findByCode($providerCode), false);
         if (!$provider) {

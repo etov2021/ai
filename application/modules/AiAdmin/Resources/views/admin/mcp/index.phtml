@@ -1,0 +1,55 @@
+<?php
+
+$label = 'AI - MCP сървъри';
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label);
+
+?>
+<div class="row">
+	<div class="col-12">
+		<div class="card">
+			<div class="card-body">
+				<h2 class="mb-4"><i class="fa fa-plug fa-fw"></i> <?php echo escape($label); ?></h2>
+				<p class="text-muted">
+					Сървърите се задават в <code>config/ai.php</code> (<code>ai.mcp.servers</code>). Агентът получава само инструментите от <code>allowed_tools</code>.
+					За да ги ползва, добавете в „Инструменти“ ред с тип <code>builtin</code> и код, равен на колоната „Код за Инструменти“, и го разрешете на агента.
+				</p>
+				<p>
+					<a class="btn btn-primary" href="<?php echo escape($this->refreshUrl); ?>">Обнови списъка</a>
+					<a class="btn btn-default" href="<?php echo escape($this->homeUrl); ?>">Назад</a>
+				</p>
+
+				<?php foreach ($this->servers as $code => $server) : ?>
+					<h4 class="mt-4"><?php echo escape($code); ?> <small class="text-muted"><?php echo escape($server['url']); ?></small></h4>
+					<?php if ($server['error'] !== null) : ?>
+						<div class="alert alert-danger"><?php echo escape($server['error']); ?></div>
+					<?php endif; ?>
+					<div class="table-responsive">
+						<table class="table table-striped">
+							<thead>
+								<tr><th>Инструмент на сървъра</th><th>Код за Инструменти</th><th>Описание</th><th>Разрешен</th></tr>
+							</thead>
+							<tbody>
+							<?php foreach ($server['tools'] as $tool) : ?>
+								<tr>
+									<td><?php echo escape($tool['name']); ?></td>
+									<td><code><?php echo escape($tool['local']); ?></code></td>
+									<td><?php echo escape($tool['description']); ?></td>
+									<td><?php echo $tool['allowed'] ? 'да' : 'не'; ?></td>
+								</tr>
+							<?php endforeach; ?>
+							<?php if (empty($server['tools'])) : ?>
+								<tr><td colspan="4" class="text-muted">Няма открити инструменти.</td></tr>
+							<?php endif; ?>
+							</tbody>
+						</table>
+					</div>
+				<?php endforeach; ?>
+				<?php if (empty($this->servers)) : ?>
+					<p class="text-muted">Няма конфигурирани MCP сървъри.</p>
+				<?php endif; ?>
+			</div>
+		</div>
+	</div>
+</div>
