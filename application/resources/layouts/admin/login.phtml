@@ -4,7 +4,7 @@
 <head>
         
         <meta charset="utf-8" />
-        <title><?php echo $this->renderSection('title', (isset($this->metaRoute) && isset($this->metaRoute['title']) ? translate('СОФИ') . ' - ' . $this->metaRoute['title'] : translate('СОФИ'))); ?></title>
+        <title><?php echo $this->renderSection('title', (isset($this->metaRoute) && isset($this->metaRoute['title']) ? $this->metaRoute['title'] : '')); ?></title>
         <link rel="shortcut icon" href="templates/admin/images/favicon.ico">
 
         <?php

@@ -1,0 +1,50 @@
+<?php
+
+$label = 'AI - Получена поща';
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label);
+
+?>
+<div class="row">
+	<div class="col-12">
+		<div class="card">
+			<div class="card-body">
+				<h2 class="mb-4"><i class="fa fa-inbox fa-fw"></i> <?php echo escape($label); ?></h2>
+
+				<form action="<?php echo escape($this->readUrl); ?>" method="post" class="mb-3">
+					<?php echo $this->form->csrf; ?>
+					<?php echo $this->form->btnRead; ?>
+					<a class="btn btn-default" href="<?php echo escape($this->homeUrl); ?>">Назад</a>
+				</form>
+
+				<div class="table-responsive">
+					<table class="table table-striped">
+						<thead>
+							<tr><th>Получено</th><th>От</th><th>Тема</th><th>Анализ</th></tr>
+						</thead>
+						<tbody>
+						<?php foreach ($this->rows as $row) : ?>
+							<tr<?php echo $row['seen'] ? '' : ' class="fw-bold"'; ?>>
+								<td><?php echo escape($row['receivedAt']); ?></td>
+								<td><?php echo escape($row['fromAddr']); ?></td>
+								<td><?php echo escape($row['subject']); ?></td>
+								<td>
+									<?php if ($row['analysis'] !== null) : ?>
+										<?php echo nl2br(escape($row['analysis'])); ?>
+									<?php else : ?>
+										<span class="text-muted"><?php echo escape($row['snippet']); ?></span>
+									<?php endif; ?>
+								</td>
+							</tr>
+						<?php endforeach; ?>
+						<?php if (empty($this->rows)) : ?>
+							<tr><td colspan="4" class="text-muted">Няма получени писма.</td></tr>
+						<?php endif; ?>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>

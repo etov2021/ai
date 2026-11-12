@@ -54,7 +54,7 @@ return [
         'temperature' => [
             'type' => 'text',
             'options' => [
-                'label' => 'Температура (0-2, празно = по подразбиране на модела)',
+                'label' => 'Креативност / случайност на отговорите (temperature, 0-2; празно = по подразбиране на модела)',
                 'labelClass' => 'form-label',
                 'class' => 'form-control',
                 'required' => 0,

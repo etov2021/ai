@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/dotenv.php';
+
 if (isset($_COOKIE['app_env'])) {
 
     require_once 'library/Micro/src/JWT/JWT.php';

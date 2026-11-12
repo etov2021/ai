@@ -7,6 +7,11 @@ use Ai\Conversation\ConversationService;
 use Ai\Contract\ExtensionInterface;
 use Ai\Exception\AiException;
 use Ai\Extension\ExtensionRegistry;
+use Ai\Gmail\GmailAccountRepository;
+use Ai\Gmail\GmailClient;
+use Ai\Gmail\GmailOAuth;
+use Ai\Gmail\GmailPoller;
+use Ai\Gmail\MailRepository;
 use Ai\Http\CurlClient;
 use Ai\Limits\RateLimiter;
 use Ai\Limits\UsageGuard;
@@ -25,7 +30,9 @@ use Ai\Storage\ProviderRepository;
 use Ai\Storage\RequestLogRepository;
 use Ai\Storage\ToolRepository;
 use Ai\Storage\UsageRepository;
+use Ai\Storage\WorkflowRepository;
 use Ai\Tool\ToolRegistry;
+use Ai\Workflow\WorkflowService;
 
 /**
  * Сглобява библиотеката Ai върху базата на Micro. Обектите се създават лениво,
@@ -145,19 +152,78 @@ final class AiServices
         });
     }
 
+    public function agentService(): AgentService
+    {
+        return $this->once('agentService', fn () => new AgentService(
+            $this->agents(),
+            $this->tools(),
+            $this->toolRegistry(),
+            new ProviderResolver($this->providers(), $this->registry()),
+            $this->logs(),
+            new UsageGuard($this->budgets(), $this->usage(), new RateLimiter($this->db())),
+        ));
+    }
+
     public function chat(): ConversationService
     {
-        return $this->once('chat', function () {
-            $agentService = new AgentService(
-                $this->agents(),
-                $this->tools(),
-                $this->toolRegistry(),
-                new ProviderResolver($this->providers(), $this->registry()),
-                $this->logs(),
-                new UsageGuard($this->budgets(), $this->usage(), new RateLimiter($this->db())),
-            );
+        return $this->once('chat', fn () => new ConversationService($this->agentService(), $this->agents(), $this->conversations()));
+    }
 
-            return new ConversationService($agentService, $this->agents(), $this->conversations());
-        });
+    public function workflows(): WorkflowRepository
+    {
+        return $this->once('workflows', fn () => new WorkflowRepository($this->db(), $this->policy(), $this->agents()));
+    }
+
+    public function workflowService(): WorkflowService
+    {
+        return $this->once('workflowService', fn () => new WorkflowService($this->workflows(), $this->agentService(), $this->extensions()));
+    }
+
+    /** @throws \Ai\Exception\AiException ако AI_MASTER_KEY липсва или е невалиден */
+    public function gmailAccounts(): GmailAccountRepository
+    {
+        return $this->once('gmailAccounts', fn () => new GmailAccountRepository($this->db(), KeyVault::fromEnv()));
+    }
+
+    public function gmailOAuth(): GmailOAuth
+    {
+        return $this->once('gmailOAuth', fn () => new GmailOAuth($this->http(), self::env('GOOGLE_CLIENT_ID'), self::env('GOOGLE_CLIENT_SECRET')));
+    }
+
+    /** Не чете базата и ключа при създаване: refresh токенът се взима чак при първо извикване на инструмент. */
+    public function gmailClient(): GmailClient
+    {
+        return $this->once('gmailClient', fn () => new GmailClient(
+            $this->http(),
+            self::env('GOOGLE_CLIENT_ID'),
+            self::env('GOOGLE_CLIENT_SECRET'),
+            fn (): ?string => $this->gmailAccounts()->refreshToken(),
+        ));
+    }
+
+    public function mailMessages(): MailRepository
+    {
+        return $this->once('mailMessages', fn () => new MailRepository($this->db()));
+    }
+
+    /** Агентът за анализ и заявката се задават в config ai.gmail; без агент се правят само известия. */
+    public function mailPoller(): GmailPoller
+    {
+        return $this->once('mailPoller', fn () => new GmailPoller(
+            $this->gmailClient(),
+            $this->mailMessages(),
+            $this->agentService(),
+            (string) config('ai.gmail.agent', ''),
+            (string) config('ai.gmail.query', 'in:inbox newer_than:2d'),
+            (int) config('ai.gmail.limit', 20),
+            (int) config('ai.gmail.analyze_per_run', 5),
+        ));
+    }
+
+    private static function env(string $name): ?string
+    {
+        $value = getenv($name);
+
+        return $value === false || $value === '' ? null : $value;
     }
 }

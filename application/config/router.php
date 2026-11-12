@@ -9,12 +9,7 @@ return [
                 'description' => 'Начало',
             ],
             // ADMIN routes
-            'admin-home' => [
-                'pattern' => '/admin/statistics',
-                'handler' => 'Programs\Controller\Admin\Index@dashboard',
-                'description' => 'Админ - начален екран',
-            ],
-			'admin-home-2' => [
+			'admin-home' => [
                 'pattern' => '/admin',
                 'handler' => 'App\Controller\Admin\Index@index',
                 'description' => 'Админ - начало',

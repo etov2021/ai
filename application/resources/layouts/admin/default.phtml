@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="bg">
 	<head>
-		<title><?php echo translate('СОФИ') . ' - ' . $this->renderSection('title', (isset($this->metaRoute) && isset($this->metaRoute['title']) ? $this->metaRoute['title'] : translate('Начало'))); ?></title>
+		<title><?php echo $this->renderSection('title', (isset($this->metaRoute) && isset($this->metaRoute['title']) ? $this->metaRoute['title'] : translate('Начало'))); ?></title>
 		<?php echo $this->render('layouts/admin/includes/_head'); ?>
 	</head>
 	<body data-sidebar="dark">
@@ -24,6 +24,7 @@
                     	<?php echo $this->render('layouts/admin/includes/_breadcrumbs'); ?>
 
             			<?php
+            			echo $this->render('layouts/admin/includes/_flash');
             				echo $this->renderSection('content');
             			?>
     				</div>

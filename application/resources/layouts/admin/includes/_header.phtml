@@ -6,7 +6,7 @@
     
                 <a href="index.html" class="logo logo-light">
                     <span class="logo-lg">
-                       <img src="templates/admin/images/icygen-logo.svg" alt="logo-sm">
+                       <img src="templates/admin/images/logo.svg" alt="logo-sm">
                     </span>
                 </a>
             </div>
@@ -29,101 +29,62 @@
                 </button>
             </div>
     
+            <?php $mail = AiAdmin\Service\MailNotifications::summary(); ?>
+            <?php if ($mail['url'] !== '') : ?>
             <div class="dropdown d-inline-block">
                 <button type="button" class="btn header-item noti-icon waves-effect" id="page-header-notifications-dropdown"
                 data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                     <i class="mdi mdi-bell"></i>
-                    <span class="badge bg-danger rounded-pill">3</span>
+                    <?php if ($mail['count'] > 0) : ?>
+                    <span class="badge bg-danger rounded-pill"><?php echo (int) $mail['count']; ?></span>
+                    <?php endif; ?>
                 </button>
                 <div class="dropdown-menu dropdown-menu-lg dropdown-menu-end p-0"
                     aria-labelledby="page-header-notifications-dropdown">
                     <div class="p-3">
                         <div class="row align-items-center">
                             <div class="col">
-                                <h6 class="m-0"> Notifications </h6>
+                                <h6 class="m-0">Нови писма</h6>
                             </div>
                             <div class="col-auto">
-                                <a href="#" class="small" key="t-view-all"> View All</a>
+                                <a href="<?php echo escape($mail['url']); ?>" class="small">Всички</a>
                             </div>
                         </div>
                     </div>
                     <div data-simplebar style="max-height: 230px;">
-                        <a href="" class="text-reset notification-item d-block active">
+                        <?php foreach ($mail['items'] as $item) : ?>
+                        <a href="<?php echo escape($mail['url']); ?>" class="text-reset notification-item d-block">
                             <div class="d-flex">
                                 <div class="flex-shrink-0 me-3">
                                     <div class="avatar-xs">
                                         <span class="avatar-title bg-primary rounded-circle font-size-16">
-                                            <i class="bx bx-cart"></i>
+                                            <i class="mdi mdi-email-outline"></i>
                                         </span>
                                     </div>
                                 </div>
                                 <div class="flex-grow-1">
-                                    <h6 class="mb-1" key="t-your-order">Your order is placed</h6>
+                                    <h6 class="mb-1"><?php echo escape($item['subject'] !== '' ? $item['subject'] : '(без тема)'); ?></h6>
                                     <div class="font-size-13 text-muted">
-                                        <p class="mb-1" key="t-grammer">If several languages coalesce the grammar</p>
-                                        <p class="mb-0 font-size-12"><i class="mdi mdi-clock-outline"></i> <span key="t-min-ago">3 min ago</span></p>
+                                        <p class="mb-1"><?php echo escape($item['fromAddr']); ?></p>
+                                        <p class="mb-1"><?php echo escape(mb_substr((string) ($item['analysis'] ?? $item['snippet']), 0, 120)); ?></p>
+                                        <p class="mb-0 font-size-12"><i class="mdi mdi-clock-outline"></i> <span><?php echo escape($item['receivedAt']); ?></span></p>
                                     </div>
                                 </div>
                             </div>
                         </a>
-                        <a href="" class="text-reset notification-item d-block ">
-                            <div class="d-flex">
-                                <div class="flex-shrink-0 me-3">
-                                    <img src="templates/admin/images/users/avatar-3.jpg" class="rounded-circle avatar-xs" alt="user-pic">
-                                </div>
-                    
-                                <div class="flex-grow-1">
-                                    <h6 class="mb-1">James Lemire</h6>
-                                    <div class="font-size-13 text-muted">
-                                        <p class="mb-1" key="t-simplified">It will seem like simplified English.</p>
-                                        <p class="mb-0 font-size-12"><i class="mdi mdi-clock-outline"></i> <span key="t-hours-ago">1 hour ago</span></p>
-                                    </div>
-                                </div>
-                            </div>
-                        </a>
-                        <a href="" class="text-reset notification-item d-block ">
-                            <div class="d-flex">
-                                <div class="flex-shrink-0 me-3">
-                                    <div class="avatar-xs">
-                                        <span class="avatar-title bg-success rounded-circle font-size-16">
-                                            <i class="bx bx-badge-check"></i>
-                                        </span>
-                                    </div>
-                                </div>
-                    
-                                <div class="flex-grow-1">
-                                    <h6 class="mb-1" key="t-shipped">Your item is shipped</h6>
-                                    <div class="font-size-13 text-muted">
-                                        <p class="mb-1" key="t-grammer">If several languages coalesce the grammar</p>
-                                        <p class="mb-0 font-size-12"><i class="mdi mdi-clock-outline"></i> <span key="t-min-ago">3 hours ago</span></p>
-                                    </div>
-                                </div>
-                            </div>
-                        </a>
-    
-                        <a href="" class="text-reset notification-item d-block ">
-                            <div class="d-flex">
-                                <div class="flex-shrink-0 me-3">
-                                    <img src="templates/admin/images/users/avatar-4.jpg" class="rounded-circle avatar-xs" alt="user-pic">
-                                </div>
-                    
-                                <div class="flex-grow-1">
-                                    <h6 class="mb-1">Salena Layfield</h6>
-                                    <div class="font-size-13 text-muted">
-                                        <p class="mb-1" key="t-occidental">As a skeptical Cambridge friend of mine occidental.</p>
-                                        <p class="mb-0 font-size-12"><i class="mdi mdi-clock-outline"></i> <span key="t-hours-ago">10 hours ago</span></p>
-                                    </div>
-                                </div>
-                            </div>
-                        </a>
+                        <?php endforeach; ?>
+                        <?php if (empty($mail['items'])) : ?>
+                        <p class="text-muted text-center p-3 mb-0">Няма нови писма.</p>
+                        <?php endif; ?>
                     </div>
                     <div class="p-2 border-top d-grid">
-                        <a class="btn btn-sm btn-link font-size-14 text-center" href="javascript:void(0)">
-                            <i class="mdi mdi-arrow-right-circle me-1"></i> <span>View More..</span> 
+                        <a class="btn btn-sm btn-link font-size-14 text-center" href="<?php echo escape($mail['url']); ?>">
+                            <i class="mdi mdi-arrow-right-circle me-1"></i> <span>Към пощата</span>
                         </a>
                     </div>
                 </div>
             </div>
+            <?php endif; ?>
         	<?php
     		$identity = identity();
     		if ($identity) :

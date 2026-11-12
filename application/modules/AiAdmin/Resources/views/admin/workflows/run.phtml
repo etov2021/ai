@@ -1,0 +1,58 @@
+<?php
+
+$label = 'AI - Изпълнение: ' . $this->item->name;
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label);
+
+?>
+<div class="row">
+	<div class="col-12">
+		<div class="card">
+			<div class="card-body">
+				<h2 class="mb-4"><i class="fa fa-sitemap fa-fw"></i> <?php echo escape($label); ?></h2>
+				<p><a class="btn btn-default" href="<?php echo escape($this->backUrl); ?>">Назад</a></p>
+
+				<form class="form-horizontal" action="<?php echo route(); ?>" method="post" autocomplete="off">
+					<?php echo $this->form->csrf; ?>
+					<div class="row mb-3">
+						<div class="col-md-12">
+							<?php echo $this->form->input->renderLabel(); ?>
+							<?php echo $this->form->input; ?>
+						</div>
+					</div>
+					<?php echo $this->form->btnRun; ?>
+				</form>
+
+				<?php if ($this->result) : $r = $this->result; ?>
+					<hr />
+					<h4>Резултат</h4>
+					<div class="p-3 border rounded mb-3" style="white-space: pre-wrap"><?php echo escape($r['output']); ?></div>
+
+					<?php foreach ((array) ($r['warnings'] ?? []) as $warning) : ?>
+						<div class="alert alert-warning"><?php echo escape($warning); ?></div>
+					<?php endforeach; ?>
+
+					<?php if (isset($r['inputTokens'])) : ?>
+						<p class="text-muted">
+							Заявки: <?php echo (int) $r['calls']; ?>,
+							токени: <?php echo (int) $r['inputTokens']; ?> вход / <?php echo (int) $r['outputTokens']; ?> изход,
+							разход: <?php echo escape(number_format((float) $r['cost'], 4, '.', ' ')); ?> EUR,
+							време: <?php echo (int) $r['durationMs']; ?> мс.
+						</p>
+					<?php endif; ?>
+
+					<?php if (!empty($r['steps'])) : ?>
+						<h5>Изход по стъпки</h5>
+						<?php foreach ($r['steps'] as $stepId => $output) : ?>
+							<div class="mb-2">
+								<strong><?php echo escape($stepId); ?></strong>
+								<div class="p-2 border rounded bg-light" style="white-space: pre-wrap"><?php echo escape($output); ?></div>
+							</div>
+						<?php endforeach; ?>
+					<?php endif; ?>
+				<?php endif; ?>
+			</div>
+		</div>
+	</div>
+</div>

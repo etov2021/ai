@@ -1,0 +1,45 @@
+<?php
+
+$label = 'AI - Работни потоци';
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label);
+
+?>
+<div class="row">
+	<div class="col-12">
+		<div class="card">
+			<div class="card-body">
+				<h2 class="mb-4"><i class="fa fa-sitemap fa-fw"></i> <?php echo escape($label); ?></h2>
+				<p>
+					<a class="btn btn-primary" href="<?php echo escape($this->addUrl); ?>">Добавяне</a>
+					<a class="btn btn-default" href="<?php echo escape($this->homeUrl); ?>">Назад</a>
+				</p>
+				<div class="table-responsive">
+					<table class="table table-striped">
+						<thead>
+							<tr><th>Код</th><th>Име</th><th>Стъпки</th><th>Активен</th><th></th></tr>
+						</thead>
+						<tbody>
+						<?php foreach ($this->rows as $row) : $w = $row['item']; ?>
+							<tr>
+								<td><?php echo escape($w->code); ?></td>
+								<td><?php echo escape($w->name); ?></td>
+								<td><?php echo escape(implode(' → ', array_map(static fn ($s) => $s['id'] . ' (' . $s['type'] . ')', $w->definition->steps))); ?></td>
+								<td><?php echo $w->active ? 'да' : 'не'; ?></td>
+								<td>
+									<a href="<?php echo escape($row['edit']); ?>">Редактиране</a> |
+									<a href="<?php echo escape($row['run']); ?>">Изпълнение</a>
+								</td>
+							</tr>
+						<?php endforeach; ?>
+						<?php if (empty($this->rows)) : ?>
+							<tr><td colspan="5" class="text-muted">Няма работни потоци.</td></tr>
+						<?php endif; ?>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>

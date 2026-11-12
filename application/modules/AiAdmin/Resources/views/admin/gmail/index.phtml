@@ -1,0 +1,58 @@
+<?php
+
+$label = 'AI - Gmail';
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label);
+
+?>
+<div class="row">
+	<div class="col-12">
+		<div class="card">
+			<div class="card-body">
+				<h2 class="mb-4"><i class="fa fa-envelope fa-fw"></i> <?php echo escape($label); ?></h2>
+
+				<?php if (!$this->configured) : ?>
+					<div class="alert alert-warning">
+						Липсват <code>GOOGLE_CLIENT_ID</code> и <code>GOOGLE_CLIENT_SECRET</code> в средата (<code>.env</code>). Създайте OAuth клиент от тип „Web application“ в Google Cloud, включете Gmail API и добавете този адрес за пренасочване:
+						<br /><code><?php echo escape($this->redirectUri); ?></code>
+					</div>
+				<?php endif; ?>
+
+				<p>Достъпът е само за четене (<code>gmail.readonly</code>). Агентите ползват инструментите <code>mail_search</code> и <code>mail_read</code> и работят с първия свързан акаунт.</p>
+
+				<div class="table-responsive">
+					<table class="table table-striped">
+						<thead>
+							<tr><th>Акаунт</th><th>Свързан на</th><th></th></tr>
+						</thead>
+						<tbody>
+						<?php foreach ($this->rows as $row) : ?>
+							<tr>
+								<td><?php echo escape($row['item']['email']); ?></td>
+								<td><?php echo escape($row['item']['created']); ?></td>
+								<td>
+									<form action="<?php echo escape($row['disconnect']); ?>" method="post" class="d-inline">
+										<?php echo $this->form->csrf; ?>
+										<?php echo $this->form->btnDisconnect; ?>
+									</form>
+								</td>
+							</tr>
+						<?php endforeach; ?>
+						<?php if (empty($this->rows)) : ?>
+							<tr><td colspan="3" class="text-muted">Няма свързан акаунт.</td></tr>
+						<?php endif; ?>
+						</tbody>
+					</table>
+				</div>
+
+				<p>
+					<?php if ($this->configured) : ?>
+						<a class="btn btn-primary" href="<?php echo escape($this->connectUrl); ?>">Свържи Gmail акаунт</a>
+					<?php endif; ?>
+					<a class="btn btn-default" href="<?php echo escape($this->homeUrl); ?>">Назад</a>
+				</p>
+			</div>
+		</div>
+	</div>
+</div>
