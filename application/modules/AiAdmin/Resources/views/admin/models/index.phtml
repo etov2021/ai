@@ -13,7 +13,7 @@ $this->extend('shared::layouts/admin/default')
 				<h2 class="mb-4"><i class="fa fa-cubes fa-fw"></i> <?php echo escape($label); ?></h2>
 				<p>
 					<a class="btn btn-default" href="<?php echo escape($this->homeUrl); ?>">Назад</a>
-					<a class="btn btn-info" href="<?php echo escape($this->importUrl); ?>">Импорт от Ollama</a>
+					<a class="btn btn-info" href="<?php echo escape($this->importUrl); ?>">Импорт на модели</a>
 				</p>
 				<?php foreach ($this->groups as $group) : ?>
 					<h4 class="mt-4">

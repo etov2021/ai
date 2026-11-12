@@ -5,7 +5,7 @@ return [
         'provider' => [
             'type' => 'select',
             'options' => [
-                'label' => 'Ollama доставчик',
+                'label' => 'Доставчик',
                 'labelClass' => 'form-label',
                 'class' => 'form-control',
                 'required' => 1,

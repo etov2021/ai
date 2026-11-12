@@ -32,16 +32,16 @@ class Models extends BaseController
         return ['groups' => $groups, 'homeUrl' => $this->url('index'), 'importUrl' => $this->url('models', 'import')];
     }
 
-    /** Добавя изтеглените в Ollama модели с цена 0; съществуващите не се променят. */
+    /** Добавя моделите на Ollama (изтеглените) и Gemini (от ListModels за ключа) с цена 0; съществуващите не се променят. */
     public function importAction()
     {
-        $ollama = array_values(array_filter(
+        $importable = array_values(array_filter(
             $this->safely(fn () => $this->ai()->providers()->all()),
-            static fn ($p) => $p->type === 'ollama' && $p->active,
+            static fn ($p) => in_array($p->type, ['ollama', 'gemini'], true) && $p->active,
         ));
 
         $form = new Form($this->formPath('models-import'));
-        $form->getElement('provider')->setMultiOptions(array_column(array_map(static fn ($p) => [$p->code, $p->name], $ollama), 1, 0));
+        $form->getElement('provider')->setMultiOptions(array_column(array_map(static fn ($p) => [$p->code, $p->name . ' (' . $p->type . ')'], $importable), 1, 0));
 
         if ($this->request->isPost()) {
             $post = $this->post();
@@ -49,19 +49,31 @@ class Models extends BaseController
             if ($form->isValid($post)) {
                 try {
                     $provider = $this->ai()->providers()->findByCode((string) $post['provider']);
-                    if ($provider === null || $provider->type !== 'ollama') {
-                        throw new AiException('Доставчикът не е от тип Ollama.');
+                    if ($provider === null || !in_array($provider->type, ['ollama', 'gemini'], true)) {
+                        throw new AiException('Импорт се поддържа само за доставчици от тип Ollama и Gemini.');
+                    }
+
+                    if ($provider->type === 'gemini') {
+                        $key = $this->ai()->providers()->apiKey($provider->code) ?? throw new AiException('За доставчика няма записан API ключ.');
+                        $found = $this->ai()->geminiCatalog()->models($key, $provider->baseUrl, min(30, $provider->timeoutSeconds));
+                    } else {
+                        $names = $this->ai()->ollama()->models($provider->baseUrl ?? ProviderRegistry::OLLAMA_DEFAULT_URL, min(30, $provider->timeoutSeconds));
+                        $found = array_map(static fn (string $n): array => ['model' => $n, 'label' => $n, 'contextWindow' => null, 'maxOutputTokens' => null], $names);
                     }
 
                     $added = $skipped = 0;
-                    $names = $this->ai()->ollama()->models($provider->baseUrl ?? ProviderRegistry::OLLAMA_DEFAULT_URL, min(30, $provider->timeoutSeconds));
-                    foreach ($names as $name) {
-                        if ($this->ai()->models()->find($provider->id, $name) !== null) {
+                    foreach ($found as $item) {
+                        if ($this->ai()->models()->find($provider->id, $item['model']) !== null) {
                             $skipped++;
                             continue;
                         }
-                        $this->ai()->models()->save($provider->id, $name, $name, 0.0, 0.0);
-                        $added++;
+                        try {
+                            $this->ai()->models()->save($provider->id, $item['model'], $item['label'], 0.0, 0.0, $item['contextWindow'], $item['maxOutputTokens']);
+                            $added++;
+                        } catch (AiException) {
+                            // Модел с невалидно име се пропуска, без да спира целия импорт.
+                            $skipped++;
+                        }
                     }
 
                     return $this->redirect($this->url('models', 'index', $provider->code), sprintf('Добавени модели: %d, пропуснати (вече съществуват): %d', $added, $skipped));
@@ -71,7 +83,7 @@ class Models extends BaseController
             }
         }
 
-        return ['form' => $form, 'hasOllama' => $ollama !== [], 'backUrl' => $this->url('models')];
+        return ['form' => $form, 'hasProviders' => $importable !== [], 'backUrl' => $this->url('models')];
     }
 
     public function editAction()

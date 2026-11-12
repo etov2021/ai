@@ -18,6 +18,7 @@ use Ai\Mcp\McpToolProvider;
 use Ai\Http\CurlClient;
 use Ai\Limits\RateLimiter;
 use Ai\Limits\UsageGuard;
+use Ai\Provider\GeminiCatalog;
 use Ai\Provider\OllamaCatalog;
 use Ai\Registry\ProviderRegistry;
 use Ai\Registry\ProviderResolver;
@@ -85,6 +86,11 @@ final class AiServices
     public function ollama(): OllamaCatalog
     {
         return $this->once('ollama', fn () => new OllamaCatalog($this->http(), $this->policy()->allowingPrivateHosts()));
+    }
+
+    public function geminiCatalog(): GeminiCatalog
+    {
+        return $this->once('geminiCatalog', fn () => new GeminiCatalog($this->http(), $this->policy()));
     }
 
     /** @throws \Ai\Exception\AiException ако AI_MASTER_KEY липсва или е невалиден */
