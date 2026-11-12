@@ -20,7 +20,7 @@
 ## Внедряване
 
 1. **Миграции** - по ред, веднъж, в базата на приложението:
-   `Storage/migrations/001_providers_models.sql`, `002_agents_tools.sql`, `003_conversations_logs.sql`, `004_budgets_limits.sql`, `005_agent_escalation.sql`.
+   `Storage/migrations/001_providers_models.sql`, `002_agents_tools.sql`, `003_conversations_logs.sql`, `004_budgets_limits.sql`, `005_agent_escalation.sql`, `006_workflows.sql`, `007_gmail_accounts.sql`, `008_mail_messages.sql`.
 2. **Главен ключ** - генерирайте и го задайте в средата на уеб сървъра (PHP-FPM: `env[AI_MASTER_KEY]` и `clear_env = no`; Apache: `SetEnv`; CLI: системна променлива).
    ```
    php -r "require 'library/Ai/Exception/AiException.php'; require 'library/Ai/Security/KeyVault.php'; echo Ai\Security\KeyVault::generateMasterKey();"
@@ -35,6 +35,19 @@
 ## Ред на настройка в админа
 
 Доставчик (ключ) - Модел (цени в EUR за 1 млн. токена) - Инструмент - Агент - Лимити - тест през Чат.
+
+## Gmail (само четене)
+
+1. В Google Cloud: включете Gmail API, направете OAuth клиент от тип Web application и добавете като redirect URI адреса, показан на страницата AiAdmin - Gmail.
+2. В `.env`: `GOOGLE_CLIENT_ID` и `GOOGLE_CLIENT_SECRET`.
+3. AiAdmin - Gmail - „Свържи Gmail акаунт“ (refresh токенът се пази криптиран).
+4. В Инструменти добавете два реда с тип `builtin` и код `mail_search` и `mail_read`, после ги разрешете на агента.
+
+Писмата са недоверен вход: агентът получава само права за четене, а текстът им се предава с предупреждение срещу prompt injection. Инструментите ползват първия свързан акаунт.
+
+### Известия за нови писма
+
+`cronjobs/gmail-poll.php` (напр. на всеки 10 минути) записва новите писма в `AiMailMessages` и ги показва в камбанката в хедъра и в AiAdmin - Получена поща. Ако в `config/ai.php` е зададен `gmail.agent`, агентът анализира всяко писмо (до `analyze_per_run` на пускане, до 3 опита). Пълният текст на писмата не се записва в базата.
 
 ## Използване от код
 
