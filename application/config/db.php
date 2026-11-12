@@ -8,10 +8,10 @@ return [
         'adapters' => [
             'localhost' => [
                  'adapter' => 'mysqli',
-                 'host' => 'localhost',
-                 'dbname' => 'ai',
-                 'username' => 'root',
-                 'password' => '',
+                'host' => getenv('DB_HOST') ?: '',
+                'dbname' => getenv('DB_DBNAME') ?: '',
+                'username' => getenv('DB_USERNAME') ?: '',
+                'password' => getenv('DB_PASSWORD') ?: '',
                  'charset' => 'utf8',
                  'profiler' => [
                     'enabled' => 1,

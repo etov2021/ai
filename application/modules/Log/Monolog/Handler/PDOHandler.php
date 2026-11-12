@@ -2,7 +2,8 @@
 
 namespace Log\Monolog\Handler;
 
-use Monolog\Logger;
+use Monolog\Level;
+use Monolog\LogRecord;
 use Monolog\Handler\AbstractProcessingHandler;
 use Micro\Auth\Auth;
 use Micro\Container\SharedContainer;
@@ -14,14 +15,14 @@ class PDOHandler extends AbstractProcessingHandler
     private $pdo;
     private $statement;
 
-    public function __construct(\PDO $pdo, $level = Logger::DEBUG, $bubble = true)
+    public function __construct(\PDO $pdo, int|string|Level $level = Level::Debug, bool $bubble = true)
     {
         $this->pdo = $pdo;
 
         parent::__construct($level, $bubble);
     }
 
-    protected function write(array $record)
+    protected function write(LogRecord $record): void
     {
         if (!$this->initialized) {
             $this->initialize();
@@ -37,15 +38,15 @@ class PDOHandler extends AbstractProcessingHandler
         }
 
         $this->statement->execute(array(
-            'channel' => $record['channel'],
-            'level'   => $record['level'],
-            'message' => !empty($record['message']) ? $record['message'] : null,
+            'channel' => $record->channel,
+            'level'   => $record->level->value,
+            'message' => !empty($record->message) ? $record->message : null,
             'module'  => $request->getParam('module'),
             'controller' => $request->getParam('controller'),
             'action'  => $request->getParam('action'),
             'params'  => json_encode(['route' => ($route ? $route->getName() : null), 'params' => ($route ? $route->getParams() : [])]),
-            'context' => json_encode($record['context']),
-            'time'    => $record['datetime']->format('U'),
+            'context' => json_encode($record->context),
+            'time'    => $record->datetime->format('U'),
             'creator' => $identity ? $identity->getId() : null,
         ));
     }
