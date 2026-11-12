@@ -45,9 +45,11 @@ class File extends AbstractLogger implements Logger
         }
     }
 
-    public function log($level, $message, array $context = [])
+    public function log($level, string|\Stringable $message, array $context = []): void
     {
         static $strictInit;
+
+        $message = (string) $message;
 
         if (!isset($this->messages[$level])) {
             $this->messages[$level] = [];
