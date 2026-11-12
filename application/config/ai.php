@@ -10,7 +10,13 @@ return [
         // MCP сървъри (Streamable HTTP). Агентът вижда само инструментите от allowed_tools; токенът се чете от променливата token_env.
         // Пример: 'docs' => ['url' => 'https://example.com/mcp', 'token_env' => 'MCP_DOCS_TOKEN', 'allowed_tools' => ['search'], 'timeout' => 20],
         'mcp' => [
-            'servers' => [],
+            'servers' => [
+                'mslearn' => [
+                    'url' => 'https://learn.microsoft.com/api/mcp',
+                    'allowed_tools' => ['microsoft_docs_search', 'microsoft_docs_fetch'],
+                    'timeout' => 30,
+                ],
+            ],
         ],
         // Периодично четене на пощата (cronjobs/gmail-poll.php). agent = код на агент за анализ; празно = само известия.
         'gmail' => [
