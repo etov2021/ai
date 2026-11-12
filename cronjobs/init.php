@@ -5,6 +5,9 @@ use Micro\Database\Database;
 
 chdir(dirname(__DIR__));
 
+// Тайните от .env (SMTP, AI ключове) са нужни и на cron задачите, които не минават през public/index.php.
+require_once 'application/dotenv.php';
+
 define('APP_ENV', 'cronjobs');
 
 require 'application/helpers.php';
