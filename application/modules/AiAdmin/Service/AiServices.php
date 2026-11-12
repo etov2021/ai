@@ -7,6 +7,8 @@ use Ai\Conversation\ConversationService;
 use Ai\Contract\ExtensionInterface;
 use Ai\Exception\AiException;
 use Ai\Extension\ExtensionRegistry;
+use Ai\File\FileAnalyzer;
+use Ai\File\FileTextExtractor;
 use Ai\Gmail\GmailAccountRepository;
 use Ai\Gmail\GmailClient;
 use Ai\Gmail\GmailOAuth;
@@ -199,6 +201,11 @@ final class AiServices
             self::env('GOOGLE_CLIENT_SECRET'),
             fn (): ?string => $this->gmailAccounts()->refreshToken(),
         ));
+    }
+
+    public function fileAnalyzer(): FileAnalyzer
+    {
+        return $this->once('fileAnalyzer', fn () => new FileAnalyzer(new FileTextExtractor(), $this->agentService()));
     }
 
     public function mailMessages(): MailRepository

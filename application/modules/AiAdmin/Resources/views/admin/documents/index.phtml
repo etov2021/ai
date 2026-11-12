@@ -1,0 +1,63 @@
+<?php
+
+$label = 'AI - Обработка на документи';
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label);
+
+?>
+<div class="row">
+	<div class="col-12">
+		<div class="card">
+			<div class="card-body">
+				<h2 class="mb-4"><i class="fa fa-file-text fa-fw"></i> <?php echo escape($label); ?></h2>
+				<p class="text-muted">Файловете PDF (с текстов слой), DOCX, XLSX, TXT, CSV, MD и JSON до 10 MB. Файлът не се съхранява: обработва се само извлеченият текст (първите 14 000 знака).</p>
+
+				<form class="form-horizontal" action="<?php echo route(); ?>" method="post" enctype="multipart/form-data" autocomplete="off">
+					<?php echo $this->form->csrf; ?>
+					<div class="row mb-3">
+						<div class="col-md-6">
+							<label class="form-label" for="document">Файл</label>
+							<input class="form-control" type="file" id="document" name="document" accept=".pdf,.docx,.xlsx,.txt,.csv,.md,.json" required="required" />
+						</div>
+					</div>
+					<div class="row mb-3">
+						<div class="col-md-4">
+							<?php echo $this->form->agent->renderLabel(); ?>
+							<?php echo $this->form->agent; ?>
+						</div>
+						<div class="col-md-4">
+							<?php echo $this->form->mode->renderLabel(); ?>
+							<?php echo $this->form->mode; ?>
+						</div>
+					</div>
+					<div class="row mb-3">
+						<div class="col-md-8">
+							<?php echo $this->form->fields->renderLabel(); ?>
+							<?php echo $this->form->fields; ?>
+						</div>
+					</div>
+					<?php echo $this->form->btnRun; ?>
+					<a class="btn btn-default" href="<?php echo escape($this->homeUrl); ?>">Назад</a>
+				</form>
+
+				<?php if ($this->result) : $r = $this->result; $u = $r['result']->usage; ?>
+					<hr />
+					<h4>Резултат за <?php echo escape($this->fileName); ?></h4>
+					<?php if ($r['truncated']) : ?>
+						<div class="alert alert-warning">Документът е съкратен: обработени са първите 14 000 от <?php echo (int) $r['chars']; ?> знака.</div>
+					<?php endif; ?>
+					<?php if ($r['json'] === false && $this->mode === 'extract') : ?>
+						<div class="alert alert-warning">Агентът не върна валиден JSON; показан е суровият отговор.</div>
+					<?php endif; ?>
+					<div class="p-3 border rounded mb-3" style="white-space: pre-wrap"><?php echo escape($r['content']); ?></div>
+					<p class="text-muted">
+						Токени: <?php echo (int) $u->inputTokens; ?> вход / <?php echo (int) $u->outputTokens; ?> изход,
+						разход: <?php echo escape(number_format((float) $r['result']->cost, 4, '.', ' ')); ?> EUR,
+						време: <?php echo (int) $r['result']->durationMs; ?> мс.
+					</p>
+				<?php endif; ?>
+			</div>
+		</div>
+	</div>
+</div>

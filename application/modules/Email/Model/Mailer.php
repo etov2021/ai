@@ -148,7 +148,7 @@ class Mailer
 
         $content = '<html><head><title>' . $template->getSubject() . '</title></head><body>' . $template->getDescription() . '</body></html>';
 
-        if ($mailer instanceof EmailMailer\Laminas) {
+        if ($mailer instanceof EmailMailer\Symfony) {
             $mailer->setHtmlBody($content);
             //$mail->setTextBody(strip_tags($templateDescription));
         } elseif ($mailer instanceof EmailMailer\Swift) {
@@ -157,7 +157,7 @@ class Mailer
         }
 
         foreach ($this->attachments as $attachment) {
-            if ($mailer instanceof EmailMailer\Laminas) {
+            if ($mailer instanceof EmailMailer\Symfony) {
                 $mailer->attach($attachment[0], $attachment[1]);
             } elseif ($mailer instanceof EmailMailer\Swift) {
                 $mailer->attach(\Swift_Attachment::fromPath($attachment[0], $attachment[1]));
