@@ -4,7 +4,6 @@ return [
     'config_cache_enabled' => false,
     'microloader' => [
         'paths' => [
-            'Twil' => 'library/Twil',
             'Ai' => 'library/Ai',
         ],
     ],
