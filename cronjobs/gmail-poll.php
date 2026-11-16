@@ -12,14 +12,21 @@ try {
 
     echo Bench::start($name);
 
-    $result = AiAdmin\Service\AiServices::get()->mailPoller()->run();
+    $services = AiAdmin\Service\AiServices::get();
+
+    // Показва какво се търси и в кой акаунт: най-честата причина за "0 намерени" е твърде тясна заявка.
+    echo 'Акаунт: ' . (implode(', ', array_column($services->gmailAccounts()->all(), 'email')) ?: 'няма') . NL;
+    echo 'Заявка: ' . config('ai.gmail.query', 'in:inbox newer_than:2d') . NL;
+
+    $result = $services->mailPoller()->run();
 
     echo sprintf(
-        'Намерени: %d, нови: %d, анализирани: %d, неуспешни: %d%s',
+        'Намерени: %d, нови: %d, анализирани: %d, неуспешни: %d, предложени събития: %d%s',
         $result['found'],
         $result['added'],
         $result['analyzed'],
         $result['failed'],
+        $result['proposed'],
         $result['stopped'] !== null ? ', спряно: ' . $result['stopped'] : ''
     ) . NL;
 
