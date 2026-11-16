@@ -6,7 +6,7 @@
     
                 <a href="index.html" class="logo logo-light">
                     <span class="logo-lg">
-                       <img src="templates/admin/images/icygen-logo3.svg" alt="logo-sm">
+                       <img src="templates/admin/images/icygen-logo.jpg" alt="logo-sm">
                     </span>
                 </a>
             </div>
@@ -30,7 +30,7 @@
             </div>
     
             <?php $mail = AiAdmin\Service\MailNotifications::summary(); ?>
-            <?php if ($mail['url'] !== '') : ?>
+            <?php if ($mail['url'] !== '' || $mail['calendarUrl'] !== '') : ?>
             <div class="dropdown d-inline-block">
                 <button type="button" class="btn header-item noti-icon waves-effect" id="page-header-notifications-dropdown"
                 data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -44,14 +44,34 @@
                     <div class="p-3">
                         <div class="row align-items-center">
                             <div class="col">
-                                <h6 class="m-0">Нови писма</h6>
+                                <h6 class="m-0">Известия</h6>
                             </div>
                             <div class="col-auto">
-                                <a href="<?php echo escape($mail['url']); ?>" class="small">Всички</a>
+                                <a href="<?php echo escape($mail['url'] !== '' ? $mail['url'] : $mail['calendarUrl']); ?>" class="small">Всички</a>
                             </div>
                         </div>
                     </div>
                     <div data-simplebar style="max-height: 230px;">
+                        <?php foreach ($mail['events'] as $event) : ?>
+                        <a href="<?php echo escape($mail['calendarUrl']); ?>" class="text-reset notification-item d-block">
+                            <div class="d-flex">
+                                <div class="flex-shrink-0 me-3">
+                                    <div class="avatar-xs">
+                                        <span class="avatar-title bg-warning rounded-circle font-size-16">
+                                            <i class="mdi mdi-calendar-clock"></i>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1"><?php echo escape($event['summary']); ?></h6>
+                                    <div class="font-size-13 text-muted">
+                                        <p class="mb-1">Чака потвърждение в календара</p>
+                                        <p class="mb-0 font-size-12"><i class="mdi mdi-clock-outline"></i> <span><?php echo escape($event['startAt']); ?></span></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                        <?php endforeach; ?>
                         <?php foreach ($mail['items'] as $item) : ?>
                         <a href="<?php echo escape($mail['url']); ?>" class="text-reset notification-item d-block">
                             <div class="d-flex">
@@ -73,13 +93,13 @@
                             </div>
                         </a>
                         <?php endforeach; ?>
-                        <?php if (empty($mail['items'])) : ?>
-                        <p class="text-muted text-center p-3 mb-0">Няма нови писма.</p>
+                        <?php if (empty($mail['items']) && empty($mail['events'])) : ?>
+                        <p class="text-muted text-center p-3 mb-0">Няма нови известия.</p>
                         <?php endif; ?>
                     </div>
                     <div class="p-2 border-top d-grid">
-                        <a class="btn btn-sm btn-link font-size-14 text-center" href="<?php echo escape($mail['url']); ?>">
-                            <i class="mdi mdi-arrow-right-circle me-1"></i> <span>Към пощата</span>
+                        <a class="btn btn-sm btn-link font-size-14 text-center" href="<?php echo escape($mail['url'] !== '' ? $mail['url'] : $mail['calendarUrl']); ?>">
+                            <i class="mdi mdi-arrow-right-circle me-1"></i> <span><?php echo $mail['url'] !== '' ? 'Към пощата' : 'Към календара'; ?></span>
                         </a>
                     </div>
                 </div>

@@ -50,9 +50,19 @@ class Agents extends BaseController
 
         $selectedTools = $existing ? $existing->toolCodes : [];
 
+        // Таблиците за документи може да липсват (миграциите не са изпълнени): редакцията на агента не бива да се чупи.
+        $documents = [];
+        $selectedDocs = [];
+        try {
+            $documents = $this->ai()->documents()->all();
+            $selectedDocs = $existing ? ($this->ai()->documents()->idsForAgent($existing->id) ?? []) : [];
+        } catch (\Throwable) {
+        }
+
         if ($this->request->isPost()) {
             $post = $this->post();
             $selectedTools = array_values(array_filter((array) ($post['tools'] ?? []), 'is_string'));
+            $selectedDocs = array_values(array_map('intval', array_filter((array) ($post['documents'] ?? []), static fn ($v) => is_string($v) && ctype_digit($v))));
 
             if (isset($post['btnBack'])) {
                 return $this->redirect($this->url('agents'));
@@ -75,6 +85,14 @@ class Agents extends BaseController
                         self::intOrNull($post['escalationModelId'] ?? ''),
                     );
 
+                    try {
+                        $this->ai()->documents()->setAgentDocuments($saved->id, $selectedDocs);
+                    } catch (\Throwable) {
+                        if ($selectedDocs !== []) {
+                            flash()->setMessage('Документите на агента не са записани: изпълнете миграции 009 и 010.', 'warning');
+                        }
+                    }
+
                     return $this->redirect(
                         isset($post['btnApply']) ? $this->url('agents', 'edit', $saved->code) : $this->url('agents'),
                         'Информацията е записана',
@@ -85,6 +103,6 @@ class Agents extends BaseController
             }
         }
 
-        return ['form' => $form, 'item' => $existing, 'tools' => $tools, 'selectedTools' => $selectedTools];
+        return ['form' => $form, 'item' => $existing, 'tools' => $tools, 'selectedTools' => $selectedTools, 'documents' => $documents, 'selectedDocs' => $selectedDocs];
     }
 }

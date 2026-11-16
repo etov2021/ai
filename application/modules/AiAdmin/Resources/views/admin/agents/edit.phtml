@@ -80,6 +80,25 @@ $this->extend('shared::layouts/admin/default')
 					</div>
 					<div class="row mb-3">
 						<div class="col-md-12">
+							<label class="form-label">Документи, до които агентът има достъп (нищо отбелязано = всички документи)</label>
+							<?php foreach ($this->documents as $doc) : ?>
+								<div>
+									<label class="checkbox-inline">
+										<input type="checkbox" name="documents[]" value="<?php echo (int) $doc['id']; ?>"<?php echo in_array((int) $doc['id'], $this->selectedDocs, true) ? ' checked="checked"' : ''; ?> />
+										<strong><?php echo escape($doc['title']); ?></strong>
+										(<?php echo (int) $doc['chunkCount']; ?> части)
+									</label>
+								</div>
+							<?php endforeach; ?>
+							<?php if (empty($this->documents)) : ?>
+								<span class="text-muted">Няма документи в библиотеката.</span>
+							<?php else : ?>
+								<small class="text-muted">Важи за инструментите docs_search, docs_list и docs_read. Ако изтриете всички избрани документи, агентът отново вижда всички.</small>
+							<?php endif; ?>
+						</div>
+					</div>
+					<div class="row mb-3">
+						<div class="col-md-12">
 							<label class="checkbox-inline">
 								<?php echo $this->form->active; ?>
 								<?php echo $this->form->active->getLabel(); ?>

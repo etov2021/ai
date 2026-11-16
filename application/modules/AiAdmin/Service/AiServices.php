@@ -10,10 +10,16 @@ use Ai\Extension\ExtensionRegistry;
 use Ai\File\FileAnalyzer;
 use Ai\File\FileTextExtractor;
 use Ai\Gmail\GmailAccountRepository;
+use Ai\Calendar\CalendarClient;
+use Ai\Calendar\CalendarRepository;
+use Ai\Google\GoogleToken;
 use Ai\Gmail\GmailClient;
 use Ai\Gmail\GmailOAuth;
 use Ai\Gmail\GmailPoller;
 use Ai\Gmail\MailRepository;
+use Ai\Knowledge\DocumentImporter;
+use Ai\Knowledge\DocumentRepository;
+use Ai\Knowledge\DocumentRetriever;
 use Ai\Mcp\McpToolProvider;
 use Ai\Http\CurlClient;
 use Ai\Limits\RateLimiter;
@@ -200,14 +206,35 @@ final class AiServices
     }
 
     /** Не чете базата и ключа при създаване: refresh токенът се взима чак при първо извикване на инструмент. */
-    public function gmailClient(): GmailClient
+    public function googleToken(): GoogleToken
     {
-        return $this->once('gmailClient', fn () => new GmailClient(
+        return $this->once('googleToken', fn () => new GoogleToken(
             $this->http(),
             self::env('GOOGLE_CLIENT_ID'),
             self::env('GOOGLE_CLIENT_SECRET'),
             fn (): ?string => $this->gmailAccounts()->refreshToken(),
         ));
+    }
+
+    public function gmailClient(): GmailClient
+    {
+        return $this->once('gmailClient', fn () => new GmailClient($this->http(), $this->googleToken(), fn (): array => $this->gmailAccounts()->scopes()));
+    }
+
+    /** Без повторни опити: при грешка след изпращане събитието може да е създадено, и повторението ще го дублира. */
+    public function calendarClient(): CalendarClient
+    {
+        return $this->once('calendarClient', fn () => new CalendarClient(
+            new CurlClient(0),
+            $this->googleToken(),
+            (string) config('ai.calendar.timezone', 'Europe/Sofia'),
+            fn (): array => $this->gmailAccounts()->scopes(),
+        ));
+    }
+
+    public function calendarProposals(): CalendarRepository
+    {
+        return $this->once('calendarProposals', fn () => new CalendarRepository($this->db()));
     }
 
     /** Токените идват от променливите на средата, посочени в token_env; без повторни опити, за да не се изпълни инструмент два пъти. */
@@ -227,6 +254,21 @@ final class AiServices
 
             return new McpToolProvider($servers, new CurlClient(0), $this->policy(), data_path('cache'));
         });
+    }
+
+    public function documents(): DocumentRepository
+    {
+        return $this->once('documents', fn () => new DocumentRepository($this->db()));
+    }
+
+    public function documentImporter(): DocumentImporter
+    {
+        return $this->once('documentImporter', fn () => new DocumentImporter(new FileTextExtractor(), $this->documents()));
+    }
+
+    public function documentRetriever(): DocumentRetriever
+    {
+        return $this->once('documentRetriever', fn () => new DocumentRetriever($this->documents()));
     }
 
     public function fileAnalyzer(): FileAnalyzer
@@ -250,6 +292,10 @@ final class AiServices
             (string) config('ai.gmail.query', 'in:inbox newer_than:2d'),
             (int) config('ai.gmail.limit', 20),
             (int) config('ai.gmail.analyze_per_run', 5),
+            $this->calendarClient(),
+            $this->calendarProposals(),
+            (string) config('ai.gmail.calendar_agent', ''),
+            (int) config('ai.gmail.calendar_per_run', 5),
         ));
     }
 

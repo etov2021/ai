@@ -34,20 +34,20 @@ return [
         'description' => [
             'type' => 'textarea',
             'options' => [
-                'label' => 'Описание (вижда се от модела - кога да ползва инструмента)',
+                'label' => 'Описание (при HTTP вижда се от модела - кога да ползва инструмента; при вградени по избор, моделът ползва описанието от кода)',
                 'labelClass' => 'form-label',
                 'class' => 'form-control',
-                'required' => 1,
+                'required' => 0,
                 'attributes' => ['rows' => 3, 'maxlength' => 1000],
             ],
         ],
         'parameters' => [
             'type' => 'textarea',
             'options' => [
-                'label' => 'Параметри (JSON Schema от тип object)',
+                'label' => 'Параметри (JSON Schema от тип object; празно за вградените инструменти)',
                 'labelClass' => 'form-label',
                 'class' => 'form-control',
-                'required' => 1,
+                'required' => 0,
                 'attributes' => ['rows' => 10, 'style' => 'font-family: monospace'],
             ],
         ],

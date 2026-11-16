@@ -55,7 +55,7 @@ class Gmail extends BaseController
 
         try {
             $account = $this->ai()->gmailOAuth()->connect($code, $this->redirectUri());
-            $this->ai()->gmailAccounts()->save($account['email'], $account['refreshToken'], \Ai\Gmail\GmailOAuth::SCOPE);
+            $this->ai()->gmailAccounts()->save($account['email'], $account['refreshToken'], $account['scope'] !== '' ? $account['scope'] : \Ai\Gmail\GmailOAuth::SCOPE);
         } catch (AiException $e) {
             return $this->redirect($this->url('gmail'), $e->getMessage(), 'danger');
         }

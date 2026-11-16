@@ -56,7 +56,8 @@ class Tools extends BaseController
             }
 
             if ($form->isValid($post)) {
-                $parameters = json_decode((string) $post['parameters'], true);
+                // Вградените инструменти взимат параметрите от кода, затова празното поле е в ред.
+                $parameters = json_decode(trim((string) ($post['parameters'] ?? '')) === '' ? self::EMPTY_SCHEMA : (string) $post['parameters'], true);
                 $configText = (string) ($post['config'] ?? '');
                 $config = $configText === '' ? [] : json_decode($configText, true);
 
@@ -64,12 +65,15 @@ class Tools extends BaseController
                     $form->getElement('parameters')->addError('Невалиден JSON');
                 } elseif (!is_array($config)) {
                     $form->getElement('config')->addError('Невалиден JSON');
+                } elseif (trim((string) ($post['description'] ?? '')) === '' && (string) $post['type'] !== 'builtin') {
+                    $form->getElement('description')->addError('Описанието е задължително за HTTP инструмент: то се подава на модела.');
                 } else {
                     try {
                         $saved = $this->ai()->tools()->save(
                             $existing ? $existing->code : (string) $post['code'],
                             (string) $post['name'],
-                            (string) $post['description'],
+                            // Вграденият инструмент подава на модела описанието от кода; празното поле се попълва с името, за да не е празно в базата.
+                            trim((string) ($post['description'] ?? '')) !== '' ? (string) $post['description'] : (string) $post['name'],
                             (string) $post['type'],
                             $parameters,
                             $config,
