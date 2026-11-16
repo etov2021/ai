@@ -1,20 +1,92 @@
 <?php
 
+use AiAdmin\Service\CalendarView;
+
 $label = 'AI - Календар';
 
 $this->extend('shared::layouts/admin/default')
      ->section('title', $label);
 
+$todayKey = $this->today->format('Y-m-d');
+$dayName = static fn (\DateTimeImmutable $d): string => CalendarView::DAYS_SHORT[(int) $d->format('N') - 1];
 $statusText = ['created' => 'създадено', 'rejected' => 'отхвърлено', 'failed' => 'грешка', 'working' => 'в процес'];
 
+// Малък блок за събитие в месечния и седмичния изглед; щракването отваря подробностите.
+$chip = static function (array $s, bool $withTime = true): string {
+    $classes = 'cal-chip cal-c' . (int) $s['color'] . ($s['type'] === 'proposal' ? ' cal-proposal' : '') . ($s['allDay'] ? ' cal-allday' : '') . ($s['tentative'] ? ' cal-tentative' : '');
+    $time = !$s['allDay'] && $withTime && $s['first'] ? '<b>' . escape($s['segStart']->format('H:i')) . '</b> ' : '';
+    $mark = $s['type'] === 'proposal' ? '<i class="mdi mdi-help-circle-outline"></i> ' : '';
+
+    return '<a href="#" class="' . $classes . '" data-cal-key="' . escape($s['key']) . '" title="' . escape($s['title']) . '">' . $mark . $time . escape($s['title']) . '</a>';
+};
+
 ?>
+<style>
+.cal-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-bottom: 1rem; }
+.cal-title { font-size: 1.25rem; font-weight: 600; margin: 0 .75rem; min-width: 12rem; }
+.cal-views { margin-left: auto; }
+.cal-month { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-top: 1px solid #dee2e6; border-left: 1px solid #dee2e6; }
+.cal-head { padding: .35rem; text-align: center; font-weight: 600; font-size: .8rem; color: #6c757d; border-right: 1px solid #dee2e6; border-bottom: 1px solid #dee2e6; background: #f8f9fa; }
+.cal-cell { min-height: 118px; padding: .25rem; border-right: 1px solid #dee2e6; border-bottom: 1px solid #dee2e6; overflow: hidden; }
+.cal-cell.cal-out { background: #fafafa; color: #adb5bd; }
+.cal-cell.cal-today { background: #eef5ff; }
+.cal-daynum { display: inline-block; min-width: 1.6rem; height: 1.6rem; line-height: 1.6rem; text-align: center; border-radius: 50%; font-size: .8rem; color: inherit; margin-bottom: 2px; }
+.cal-today .cal-daynum { background: #0d6efd; color: #fff; font-weight: 600; }
+.cal-chip { display: block; margin: 1px 0; padding: 1px 5px; border-radius: 4px; font-size: .75rem; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #fff; text-decoration: none; cursor: pointer; }
+.cal-chip:hover { filter: brightness(.92); color: #fff; }
+.cal-c0 { background: #3b82f6; } .cal-c1 { background: #16a34a; } .cal-c2 { background: #8b5cf6; }
+.cal-c3 { background: #ea7c1f; } .cal-c4 { background: #0891b2; } .cal-c5 { background: #db2777; }
+.cal-proposal { background: #fff8e1 !important; color: #8a5a00 !important; border: 1px dashed #f0ad00; }
+.cal-tentative { opacity: .75; }
+.cal-more { font-size: .72rem; color: #6c757d; display: block; padding-left: 5px; }
+.cal-weekhead { display: grid; grid-template-columns: 52px repeat(7, minmax(0, 1fr)); border-bottom: 1px solid #dee2e6; }
+.cal-weekhead .cal-dh { text-align: center; padding: .3rem; font-size: .8rem; color: #6c757d; }
+.cal-weekhead .cal-dh a { display: block; color: inherit; text-decoration: none; }
+.cal-weekhead .cal-dh .cal-dn { display: inline-block; width: 2rem; height: 2rem; line-height: 2rem; border-radius: 50%; font-size: 1rem; color: #212529; }
+.cal-weekhead .cal-dh.cal-today .cal-dn { background: #0d6efd; color: #fff; }
+.cal-allrow { display: grid; grid-template-columns: 52px repeat(7, minmax(0, 1fr)); border-bottom: 1px solid #dee2e6; min-height: 1.8rem; }
+.cal-allrow > div { padding: 2px; border-left: 1px solid #eef0f2; }
+.cal-allrow > div:first-child { font-size: .65rem; color: #6c757d; border-left: 0; }
+.cal-scroll { max-height: 640px; overflow-y: auto; }
+.cal-grid { display: grid; grid-template-columns: 52px repeat(7, minmax(0, 1fr)); position: relative; }
+.cal-hours { position: relative; height: 1152px; }
+.cal-hours span { position: absolute; right: 6px; transform: translateY(-50%); font-size: .65rem; color: #6c757d; }
+.cal-col { position: relative; height: 1152px; border-left: 1px solid #eef0f2; background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 47px, #eef0f2 47px, #eef0f2 48px); }
+.cal-col.cal-today { background-color: #f6faff; }
+.cal-evt { position: absolute; padding: 2px 4px; border-radius: 4px; font-size: .72rem; line-height: 1.25; overflow: hidden; color: #fff; text-decoration: none; cursor: pointer; border: 1px solid rgba(255,255,255,.6); box-sizing: border-box; }
+.cal-evt:hover { color: #fff; filter: brightness(.92); }
+.cal-evt.cal-proposal:hover { color: #8a5a00; }
+.cal-now { position: absolute; left: 0; right: 0; height: 2px; background: #dc3545; z-index: 3; }
+.cal-agenda-day { display: flex; gap: 1rem; padding: .6rem 0; border-bottom: 1px solid #eef0f2; }
+.cal-agenda-date { width: 5.5rem; flex: 0 0 5.5rem; text-align: center; }
+.cal-agenda-date .cal-dn { display: block; font-size: 1.5rem; font-weight: 600; line-height: 1.1; }
+.cal-agenda-date small { color: #6c757d; text-transform: uppercase; }
+.cal-agenda-date.cal-today .cal-dn { color: #0d6efd; }
+.cal-agenda-row { display: flex; gap: .6rem; align-items: baseline; padding: .2rem .4rem; border-radius: 4px; color: inherit; text-decoration: none; }
+.cal-agenda-row:hover { background: #f3f6fa; color: inherit; }
+.cal-agenda-row .cal-time { width: 8.5rem; flex: 0 0 8.5rem; color: #6c757d; font-size: .85rem; }
+.cal-dot { display: inline-block; width: .7rem; height: .7rem; border-radius: 50%; margin-right: .35rem; }
+.cal-side-card { border: 1px solid #e3e6ea; border-radius: 6px; padding: .6rem .7rem; margin-bottom: .6rem; background: #fffdf5; }
+.cal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 1060; display: none; align-items: center; justify-content: center; padding: 1rem; }
+.cal-overlay.cal-open { display: flex; }
+.cal-modal { background: #fff; border-radius: 8px; width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,.3); }
+.cal-modal-head { display: flex; gap: .6rem; padding: 1rem 1rem .5rem; align-items: flex-start; }
+.cal-modal-bar { width: 6px; align-self: stretch; border-radius: 3px; }
+.cal-modal-title { font-size: 1.15rem; font-weight: 600; flex: 1; margin: 0; word-break: break-word; }
+.cal-modal-body { padding: 0 1rem 1rem 1.9rem; }
+.cal-row { display: flex; gap: .6rem; margin: .45rem 0; font-size: .92rem; }
+.cal-row > i { width: 1.3rem; color: #6c757d; flex: 0 0 1.3rem; text-align: center; }
+.cal-desc { white-space: pre-wrap; word-break: break-word; }
+.cal-modal-foot { padding: .75rem 1rem; border-top: 1px solid #eef0f2; display: flex; gap: .5rem; flex-wrap: wrap; justify-content: flex-end; }
+</style>
+
 <div class="row">
 	<div class="col-12">
 		<div class="card">
 			<div class="card-body">
-				<h2 class="mb-4"><i class="fa fa-calendar fa-fw"></i> <?php echo escape($label); ?></h2>
+				<h2 class="mb-3"><i class="fa fa-calendar fa-fw"></i> <?php echo escape($label); ?></h2>
 				<p class="text-muted">
-					Агентът чете календара и само <strong>предлага</strong> нови събития. Събитие се създава в Google Calendar едва след като го потвърдите тук.
+					Агентът чете календара и само <strong>предлага</strong> нови събития (в жълто, с пунктир). Събитие се създава в Google Calendar едва след като го потвърдите.
 					Часова зона: <?php echo escape($this->timezone); ?>.
 				</p>
 
@@ -22,88 +94,241 @@ $statusText = ['created' => 'създадено', 'rejected' => 'отхвърл�
 				<form action="<?php echo escape($this->approveUrl); ?>" method="post" autocomplete="off">
 					<?php echo $this->form->csrf; ?>
 
-					<h4 class="mt-3">Чакат потвърждение</h4>
-					<div class="table-responsive">
-						<table class="table table-striped">
-							<thead>
-								<tr><th>Начало</th><th>Край</th><th>Събитие</th><th>Място</th><th></th></tr>
-							</thead>
-							<tbody>
-							<?php foreach ($this->pending as $p) : ?>
-								<tr>
-									<td><?php echo escape($p['startAt']); ?></td>
-									<td><?php echo escape($p['endAt']); ?></td>
-									<td>
-										<strong><?php echo escape($p['summary']); ?></strong>
-										<?php if (!empty($p['description'])) : ?><br /><span class="text-muted"><?php echo escape(mb_substr($p['description'], 0, 200)); ?></span><?php endif; ?>
-									</td>
-									<td><?php echo escape((string) $p['location']); ?></td>
-									<td>
+					<div class="cal-toolbar">
+						<a class="btn btn-outline-primary btn-sm" href="<?php echo escape($this->todayUrl); ?>">Днес</a>
+						<a class="btn btn-light btn-sm" href="<?php echo escape($this->prevUrl); ?>" title="Назад"><i class="mdi mdi-chevron-left"></i></a>
+						<a class="btn btn-light btn-sm" href="<?php echo escape($this->nextUrl); ?>" title="Напред"><i class="mdi mdi-chevron-right"></i></a>
+						<span class="cal-title"><?php echo escape($this->title); ?></span>
+						<span class="btn-group cal-views">
+							<?php foreach (CalendarView::VIEWS as $key => $name) : ?>
+								<a class="btn btn-sm <?php echo $this->view === $key ? 'btn-primary' : 'btn-outline-primary'; ?>" href="<?php echo escape($this->viewUrls[$key]); ?>"><?php echo escape($name); ?></a>
+							<?php endforeach; ?>
+						</span>
+					</div>
+
+					<?php if ($this->eventsError !== null) : ?>
+						<div class="alert alert-danger"><?php echo escape($this->eventsError); ?></div>
+					<?php endif; ?>
+
+					<div class="row">
+						<div class="col-xl-9">
+						<?php if ($this->view === 'month') : ?>
+							<div class="cal-month">
+								<?php foreach (CalendarView::DAYS_SHORT as $short) : ?>
+									<div class="cal-head"><?php echo escape($short); ?></div>
+								<?php endforeach; ?>
+								<?php for ($d = $this->from; $d < $this->to; $d = $d->modify('+1 day')) :
+									$key = $d->format('Y-m-d');
+									$list = $this->days[$key] ?? [];
+									$classes = 'cal-cell' . ($d->format('n') !== $this->anchor->format('n') ? ' cal-out' : '') . ($key === $todayKey ? ' cal-today' : '');
+								?>
+									<div class="<?php echo $classes; ?>">
+										<a class="cal-daynum" href="<?php echo escape(($this->dayUrl)($d)); ?>"><?php echo escape($d->format('j')); ?></a>
+										<?php foreach (array_slice($list, 0, 3) as $s) : echo $chip($s); endforeach; ?>
+										<?php if (count($list) > 3) : ?>
+											<a class="cal-more" href="<?php echo escape(($this->dayUrl)($d)); ?>">+<?php echo count($list) - 3; ?> още</a>
+										<?php endif; ?>
+									</div>
+								<?php endfor; ?>
+							</div>
+
+						<?php elseif ($this->view === 'week') : ?>
+							<div class="cal-weekhead">
+								<div></div>
+								<?php for ($i = 0; $i < 7; $i++) : $d = $this->from->modify('+' . $i . ' days'); ?>
+									<div class="cal-dh<?php echo $d->format('Y-m-d') === $todayKey ? ' cal-today' : ''; ?>">
+										<?php echo escape($dayName($d)); ?><br /><span class="cal-dn"><?php echo escape($d->format('j')); ?></span>
+									</div>
+								<?php endfor; ?>
+							</div>
+							<div class="cal-allrow">
+								<div>цял ден</div>
+								<?php for ($i = 0; $i < 7; $i++) : $d = $this->from->modify('+' . $i . ' days'); ?>
+									<div>
+										<?php foreach ($this->days[$d->format('Y-m-d')] ?? [] as $s) : if ($s['allDay']) : echo $chip($s); endif; endforeach; ?>
+									</div>
+								<?php endfor; ?>
+							</div>
+							<div class="cal-scroll" id="cal-scroll">
+								<div class="cal-grid">
+									<div class="cal-hours">
+										<?php for ($h = 1; $h < 24; $h++) : ?>
+											<span style="top: <?php echo (int) ($h * 48); ?>px"><?php echo sprintf('%02d:00', $h); ?></span>
+										<?php endfor; ?>
+									</div>
+									<?php for ($i = 0; $i < 7; $i++) :
+										$d = $this->from->modify('+' . $i . ' days');
+										$key = $d->format('Y-m-d');
+										$timed = array_values(array_filter($this->days[$key] ?? [], static fn (array $s): bool => !$s['allDay']));
+									?>
+										<div class="cal-col<?php echo $key === $todayKey ? ' cal-today' : ''; ?>">
+											<?php foreach (CalendarView::layoutDay($timed, $d) as $s) :
+												$width = 100 / $s['lanes'];
+												$classes = 'cal-evt cal-c' . (int) $s['color'] . ($s['type'] === 'proposal' ? ' cal-proposal' : '') . ($s['tentative'] ? ' cal-tentative' : '');
+											?>
+												<a href="#" class="<?php echo $classes; ?>" data-cal-key="<?php echo escape($s['key']); ?>"
+													style="top: <?php echo (int) $s['top']; ?>px; height: <?php echo max(18, (int) $s['height'] - 2); ?>px; left: calc(<?php echo round($s['lane'] * $width, 2); ?>% + 1px); width: calc(<?php echo round($width, 2); ?>% - 3px);">
+													<b><?php echo escape($s['segStart']->format('H:i')); ?></b> <?php echo escape($s['title']); ?>
+													<?php if ($s['location'] !== '' && $s['height'] > 50) : ?><br /><?php echo escape($s['location']); ?><?php endif; ?>
+												</a>
+											<?php endforeach; ?>
+											<?php if ($key === $todayKey) : ?>
+												<div class="cal-now" style="top: <?php echo (int) round(((int) $this->today->format('G') * 60 + (int) $this->today->format('i')) * CalendarView::PX_PER_MINUTE); ?>px"></div>
+											<?php endif; ?>
+										</div>
+									<?php endfor; ?>
+								</div>
+							</div>
+
+						<?php else : ?>
+							<?php $agendaDays = $this->days; ksort($agendaDays); ?>
+							<?php foreach ($agendaDays as $key => $list) : $d = new \DateTimeImmutable($key, $this->today->getTimezone()); ?>
+								<div class="cal-agenda-day">
+									<div class="cal-agenda-date<?php echo $key === $todayKey ? ' cal-today' : ''; ?>">
+										<span class="cal-dn"><?php echo escape($d->format('j')); ?></span>
+										<small><?php echo escape(mb_substr(CalendarView::MONTHS[(int) $d->format('n') - 1], 0, 3)); ?>, <?php echo escape($dayName($d)); ?></small>
+									</div>
+									<div class="flex-grow-1">
+										<?php foreach ($list as $s) : ?>
+											<a href="#" class="cal-agenda-row" data-cal-key="<?php echo escape($s['key']); ?>">
+												<span class="cal-time"><?php echo $s['allDay'] ? 'Цял ден' : escape($s['segStart']->format('H:i') . ' - ' . $s['segEnd']->format('H:i')); ?></span>
+												<span>
+													<span class="cal-dot cal-c<?php echo (int) $s['color']; ?>"></span><strong><?php echo escape($s['title']); ?></strong>
+													<?php if ($s['type'] === 'proposal') : ?><span class="badge bg-warning text-dark">чака потвърждение</span><?php endif; ?>
+													<?php if ($s['meet'] !== '') : ?><i class="mdi mdi-video-outline text-muted"></i><?php endif; ?>
+													<?php if ($s['location'] !== '') : ?><br /><small class="text-muted"><i class="mdi mdi-map-marker-outline"></i> <?php echo escape($s['location']); ?></small><?php endif; ?>
+												</span>
+											</a>
+										<?php endforeach; ?>
+									</div>
+								</div>
+							<?php endforeach; ?>
+							<?php if (empty($this->days) && $this->eventsError === null) : ?>
+								<p class="text-muted">Няма събития в този период.</p>
+							<?php endif; ?>
+						<?php endif; ?>
+						</div>
+
+						<div class="col-xl-3 mt-3 mt-xl-0">
+							<h5>Чакат потвърждение <span class="badge bg-warning text-dark"><?php echo count($this->pending); ?></span></h5>
+							<?php foreach ($this->pending as $p) :
+								$d = $this->details['p' . (int) $p['id']] ?? null;
+							?>
+								<div class="cal-side-card">
+									<a href="#" data-cal-key="p<?php echo (int) $p['id']; ?>"><strong><?php echo escape($p['summary']); ?></strong></a>
+									<div class="small text-muted"><?php echo escape($d['when'] ?? $p['startAt']); ?></div>
+									<?php if (!empty($p['location'])) : ?><div class="small"><i class="mdi mdi-map-marker-outline"></i> <?php echo escape($p['location']); ?></div><?php endif; ?>
+									<div class="mt-2">
 										<button type="submit" class="btn btn-success btn-sm" name="id" value="<?php echo (int) $p['id']; ?>">Потвърди</button>
-										<button type="submit" class="btn btn-default btn-sm" name="id" value="<?php echo (int) $p['id']; ?>" formaction="<?php echo escape($this->rejectUrl); ?>">Отхвърли</button>
-									</td>
-								</tr>
+										<button type="submit" class="btn btn-light btn-sm" name="id" value="<?php echo (int) $p['id']; ?>" formaction="<?php echo escape($this->rejectUrl); ?>">Отхвърли</button>
+									</div>
+								</div>
 							<?php endforeach; ?>
 							<?php if (empty($this->pending)) : ?>
-								<tr><td colspan="5" class="text-muted">Няма предложения.</td></tr>
+								<p class="text-muted small">Няма предложения.</p>
 							<?php endif; ?>
-							</tbody>
-						</table>
+
+							<?php if (!empty($this->recent)) : ?>
+								<h5 class="mt-4">Последни решения</h5>
+								<?php foreach ($this->recent as $r) : ?>
+									<div class="small mb-2">
+										<strong><?php echo escape($r['summary']); ?></strong><br />
+										<span class="text-muted"><?php echo escape($r['startAt']); ?> -
+										<?php echo escape($statusText[$r['status']] ?? $r['status']); ?></span>
+										<?php if (!empty($r['error'])) : ?><br /><span class="text-danger"><?php echo escape($r['error']); ?></span><?php endif; ?>
+										<?php if (!empty($r['eventLink'])) : ?> <a href="<?php echo escape($r['eventLink']); ?>" target="_blank" rel="noopener noreferrer">отвори</a><?php endif; ?>
+									</div>
+								<?php endforeach; ?>
+							<?php endif; ?>
+
+							<h5 class="mt-4">Легенда</h5>
+							<div class="small">
+								<span class="cal-chip cal-c0 d-inline-block">Събитие</span>
+								<span class="cal-chip cal-proposal d-inline-block">Предложено</span>
+							</div>
+						</div>
+					</div>
+
+					<div class="cal-overlay" id="cal-modal" role="dialog" aria-modal="true">
+						<div class="cal-modal">
+							<div class="cal-modal-head">
+								<div class="cal-modal-bar" id="cal-bar"></div>
+								<h4 class="cal-modal-title" id="cal-m-title"></h4>
+								<button type="button" class="btn-close" data-cal-close aria-label="Затвори"></button>
+							</div>
+							<div class="cal-modal-body">
+								<div class="cal-row"><i class="mdi mdi-clock-outline"></i><div id="cal-m-when"></div></div>
+								<div class="cal-row" data-opt="location"><i class="mdi mdi-map-marker-outline"></i><div id="cal-m-location"></div></div>
+								<div class="cal-row" data-opt="organizer"><i class="mdi mdi-account-outline"></i><div id="cal-m-organizer"></div></div>
+								<div class="cal-row" data-opt="attendees"><i class="mdi mdi-account-multiple-outline"></i><div id="cal-m-attendees"></div></div>
+								<div class="cal-row" data-opt="description"><i class="mdi mdi-text"></i><div class="cal-desc" id="cal-m-description"></div></div>
+								<div class="cal-row" data-opt="proposal"><i class="mdi mdi-information-outline"></i><div class="text-warning">Предложено от агент. В календара още не е създадено.</div></div>
+							</div>
+							<div class="cal-modal-foot">
+								<a class="btn btn-outline-primary btn-sm" id="cal-m-meet" target="_blank" rel="noopener noreferrer" style="display:none">Видеоразговор</a>
+								<a class="btn btn-outline-primary btn-sm" id="cal-m-link" target="_blank" rel="noopener noreferrer" style="display:none">Отвори в Google</a>
+								<button type="submit" class="btn btn-success btn-sm" id="cal-m-approve" name="id" value="" style="display:none">Потвърди</button>
+								<button type="submit" class="btn btn-light btn-sm" id="cal-m-reject" name="id" value="" formaction="<?php echo escape($this->rejectUrl); ?>" style="display:none">Отхвърли</button>
+								<button type="button" class="btn btn-default btn-sm" data-cal-close>Затвори</button>
+							</div>
+						</div>
 					</div>
 				</form>
 
-				<h4 class="mt-4">Предстоящи събития (14 дни)</h4>
-				<?php if ($this->eventsError !== null) : ?>
-					<div class="alert alert-danger"><?php echo escape($this->eventsError); ?></div>
-				<?php else : ?>
-					<div class="table-responsive">
-						<table class="table table-striped">
-							<thead>
-								<tr><th>Начало</th><th>Край</th><th>Събитие</th><th>Място</th></tr>
-							</thead>
-							<tbody>
-							<?php foreach ($this->events as $e) : ?>
-								<tr>
-									<td><?php echo escape($e['start']); ?><?php echo $e['allDay'] ? ' (цял ден)' : ''; ?></td>
-									<td><?php echo escape($e['end']); ?></td>
-									<td><?php echo escape($e['summary']); ?></td>
-									<td><?php echo escape($e['location']); ?></td>
-								</tr>
-							<?php endforeach; ?>
-							<?php if (empty($this->events)) : ?>
-								<tr><td colspan="4" class="text-muted">Няма събития.</td></tr>
-							<?php endif; ?>
-							</tbody>
-						</table>
-					</div>
-				<?php endif; ?>
+				<script type="application/json" id="cal-data"><?php echo json_encode($this->details, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
+				<script>
+				(function () {
+					var data = JSON.parse(document.getElementById('cal-data').textContent || '{}');
+					var modal = document.getElementById('cal-modal');
 
-				<?php if (!empty($this->recent)) : ?>
-					<h4 class="mt-4">Последни решения</h4>
-					<div class="table-responsive">
-						<table class="table table-striped">
-							<thead>
-								<tr><th>Решено</th><th>Събитие</th><th>Начало</th><th>Статус</th></tr>
-							</thead>
-							<tbody>
-							<?php foreach ($this->recent as $r) : ?>
-								<tr>
-									<td><?php echo escape((string) $r['decided']); ?></td>
-									<td><?php echo escape($r['summary']); ?></td>
-									<td><?php echo escape($r['startAt']); ?></td>
-									<td>
-										<?php echo escape($statusText[$r['status']] ?? $r['status']); ?>
-										<?php if (!empty($r['error'])) : ?> <span class="text-danger"><?php echo escape($r['error']); ?></span><?php endif; ?>
-										<?php if (!empty($r['eventLink'])) : ?> <a href="<?php echo escape($r['eventLink']); ?>" target="_blank" rel="noopener noreferrer">отвори</a><?php endif; ?>
-									</td>
-								</tr>
-							<?php endforeach; ?>
-							</tbody>
-						</table>
-					</div>
-				<?php endif; ?>
+					function show(id, text) {
+						var el = document.getElementById(id);
+						el.textContent = text || '';
+						var row = el.closest('.cal-row');
+						if (row) { row.style.display = text ? '' : 'none'; }
+					}
+					function link(id, url) {
+						var a = document.getElementById(id);
+						var ok = /^https:\/\//.test(url || '');
+						a.style.display = ok ? '' : 'none';
+						if (ok) { a.setAttribute('href', url); }
+					}
+					function open(key) {
+						var d = data[key];
+						if (!d) { return; }
+						var proposal = d.type === 'proposal';
+						document.getElementById('cal-m-title').textContent = d.title;
+						document.getElementById('cal-bar').style.background = proposal ? '#f0ad00' : '#3b82f6';
+						show('cal-m-when', d.when);
+						show('cal-m-location', d.location);
+						show('cal-m-organizer', d.organizer);
+						show('cal-m-attendees', (d.attendees || []).join(', '));
+						show('cal-m-description', d.description);
+						modal.querySelector('[data-opt="proposal"]').style.display = proposal ? '' : 'none';
+						link('cal-m-meet', d.meet);
+						link('cal-m-link', d.link);
+						['cal-m-approve', 'cal-m-reject'].forEach(function (id) {
+							var b = document.getElementById(id);
+							b.style.display = proposal ? '' : 'none';
+							b.value = proposal ? String(d.proposalId) : '';
+						});
+						modal.classList.add('cal-open');
+					}
+					function close() { modal.classList.remove('cal-open'); }
 
-				<p><a class="btn btn-default" href="<?php echo escape($this->homeUrl); ?>">Назад</a></p>
+					document.addEventListener('click', function (e) {
+						var t = e.target.closest('[data-cal-key]');
+						if (t) { e.preventDefault(); open(t.getAttribute('data-cal-key')); return; }
+						if (e.target === modal || e.target.closest('[data-cal-close]')) { close(); }
+					});
+					document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { close(); } });
+
+					var scroll = document.getElementById('cal-scroll');
+					if (scroll) { scroll.scrollTop = 7 * 48; }
+				})();
+				</script>
+
+				<p class="mt-3"><a class="btn btn-default" href="<?php echo escape($this->homeUrl); ?>">Назад</a></p>
 			</div>
 		</div>
 	</div>

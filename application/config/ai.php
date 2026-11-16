@@ -29,7 +29,7 @@ return [
             'limit' => 20,
             'analyze_per_run' => 5,
             // Агент, който търси срещи в писмата и ги записва като предложения в AI - Календар. Празно = изключено.
-            'calendar_agent' => '',
+            'calendar_agent' => 'calendar-extractor',
             'calendar_per_run' => 5,
         ],
     ],

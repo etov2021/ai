@@ -5,6 +5,7 @@ namespace AiAdmin\Controller\Admin;
 use Ai\Exception\AiException;
 use Ai\Security\Redactor;
 use AiAdmin\Service\BaseController;
+use AiAdmin\Service\CalendarView;
 use Micro\Form\Form;
 
 class Calendar extends BaseController
@@ -12,12 +13,22 @@ class Calendar extends BaseController
     public function indexAction()
     {
         $client = $this->ai()->calendarClient();
-        $from = $client->now();
+        $params = $this->request->getQueryParams();
+
+        $zone = new \DateTimeZone($client->timezone());
+        $anchor = $client->now();
+        if (isset($params['date']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $params['date']) === 1) {
+            try {
+                $anchor = new \DateTimeImmutable((string) $params['date'], $zone);
+            } catch (\Exception) {
+            }
+        }
+        $range = CalendarView::range((string) ($params['view'] ?? 'month'), $anchor);
 
         $events = [];
+        $eventsError = null;
         try {
-            $events = $client->events($from, $from->modify('+14 days'), '', 30);
-            $eventsError = null;
+            $events = $client->events($range['from'], $range['to'], '', 250);
         } catch (AiException $e) {
             $eventsError = $e->getMessage();
         } catch (\Throwable) {
@@ -27,18 +38,41 @@ class Calendar extends BaseController
         $pending = $recent = [];
         try {
             $pending = $this->ai()->calendarProposals()->pending();
-            $recent = $this->ai()->calendarProposals()->recent(20);
+            $recent = $this->ai()->calendarProposals()->recent(10);
         } catch (\Throwable) {
             flash()->setMessage('Предложенията не могат да се прочетат: изпълнете миграция 011.', 'warning');
         }
 
+        $items = CalendarView::items($events, $pending, $zone);
+        $days = CalendarView::byDay($items, $range['from'], $range['to']);
+
+        $details = [];
+        foreach ($items as $item) {
+            $details[$item['key']] = CalendarView::details($item);
+        }
+
+        $nav = fn (string $view, \DateTimeImmutable|string $date): string => $this->url('calendar', 'index', null, ['view' => $view, 'date' => $date instanceof \DateTimeImmutable ? $date->format('Y-m-d') : $date]);
+
         return [
             'form' => new Form($this->formPath('calendar')),
-            'events' => $events,
+            'view' => $range['view'],
+            'title' => $range['title'],
+            'from' => $range['from'],
+            'to' => $range['to'],
+            'anchor' => $anchor,
+            'today' => $client->now(),
+            'days' => $days,
+            'details' => $details,
             'eventsError' => $eventsError,
             'timezone' => $client->timezone(),
             'pending' => $pending,
             'recent' => $recent,
+            'items' => $items,
+            'prevUrl' => $nav($range['view'], $range['prev']),
+            'nextUrl' => $nav($range['view'], $range['next']),
+            'todayUrl' => $nav($range['view'], $client->now()),
+            'viewUrls' => array_map(fn (string $v): string => $nav($v, $anchor), array_combine(array_keys(CalendarView::VIEWS), array_keys(CalendarView::VIEWS))),
+            'dayUrl' => fn (\DateTimeImmutable $d): string => $nav('week', $d),
             'approveUrl' => $this->url('calendar', 'approve'),
             'rejectUrl' => $this->url('calendar', 'reject'),
             'homeUrl' => $this->url('index'),
