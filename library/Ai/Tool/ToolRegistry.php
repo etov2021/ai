@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ai\Tool;
 
+use Ai\Agent\Agent;
+use Ai\Contract\AgentAwareToolInterface;
 use Ai\Contract\HttpClientInterface;
 use Ai\Contract\ToolInterface;
 use Ai\Exception\AiException;
@@ -32,14 +34,14 @@ final class ToolRegistry
      * @param list<ToolRecord> $records
      * @return list<ToolInterface>
      */
-    public function resolve(array $records): array
+    public function resolve(array $records, ?Agent $agent = null): array
     {
         $tools = [];
         foreach ($records as $record) {
             if (!$record->active) {
                 continue;
             }
-            $tools[] = match ($record->type) {
+            $tool = match ($record->type) {
                 'builtin' => $this->builtin[$record->code] ?? throw new AiException(sprintf('Вграденият инструмент "%s" не е регистриран в кода.', $record->code)),
                 'http' => new HttpTool(
                     $this->http,
@@ -49,6 +51,7 @@ final class ToolRegistry
                 ),
                 default => throw new AiException(sprintf('Непознат тип инструмент "%s".', $record->type)),
             };
+            $tools[] = $tool instanceof AgentAwareToolInterface && $agent !== null ? $tool->forAgent($agent) : $tool;
         }
 
         return $tools;

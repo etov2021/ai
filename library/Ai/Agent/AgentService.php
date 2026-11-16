@@ -108,7 +108,7 @@ final class AgentService
             beforeStep: $this->guard?->stepGuard($agent, $userId),
         );
 
-        $result = $runner->run($agent, $this->registry->resolve($this->tools->forAgent($agent->id)), $messages);
+        $result = $runner->run($agent, $this->registry->resolve($this->tools->forAgent($agent->id), $agent), $messages);
 
         return $result->withCost(CostCalculator::cost($result->usage, $agent->inputPricePerMillion, $agent->outputPricePerMillion));
     }
