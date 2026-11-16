@@ -51,6 +51,25 @@ final class MailRepository
         $this->db->execute('UPDATE `AiMailMessages` SET `attempts` = `attempts` + 1 WHERE `id` = ?', [$id]);
     }
 
+    /** @return list<array<string, mixed>> писма, които още не са прегледани за събития (изисква миграция 012) */
+    public function pendingCalendar(int $maxAttempts, int $limit): array
+    {
+        return $this->db->fetchAll(
+            'SELECT `id`, `gmailId`, `fromAddr`, `subject` FROM `AiMailMessages` WHERE `calendarChecked` = 0 AND `calendarAttempts` < ? ORDER BY `receivedAt` DESC LIMIT ' . max(1, $limit),
+            [$maxAttempts],
+        );
+    }
+
+    public function calendarDone(int $id): void
+    {
+        $this->db->execute('UPDATE `AiMailMessages` SET `calendarChecked` = 1 WHERE `id` = ?', [$id]);
+    }
+
+    public function calendarFailed(int $id): void
+    {
+        $this->db->execute('UPDATE `AiMailMessages` SET `calendarAttempts` = `calendarAttempts` + 1 WHERE `id` = ?', [$id]);
+    }
+
     public function unseenCount(): int
     {
         return (int) ($this->db->fetchRow('SELECT COUNT(*) AS c FROM `AiMailMessages` WHERE `seen` = 0')['c'] ?? 0);

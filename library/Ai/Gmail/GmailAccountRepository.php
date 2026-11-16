@@ -35,6 +35,14 @@ final class GmailAccountRepository
         return $row === null ? null : $this->vault->decrypt((string) $row['refreshTokenEnc'], 'gmail:' . $row['email']);
     }
 
+    /** @return list<string> разрешените обхвати на първия акаунт; празен списък, ако няма акаунт */
+    public function scopes(): array
+    {
+        $row = $this->db->fetchRow('SELECT `scope` FROM `AiGmailAccounts` ORDER BY `id` LIMIT 1');
+
+        return $row === null ? [] : array_values(array_filter(explode(' ', (string) $row['scope'])));
+    }
+
     public function save(string $email, #[\SensitiveParameter] string $refreshToken, string $scope): void
     {
         if ($email === '' || mb_strlen($email) > 255) {

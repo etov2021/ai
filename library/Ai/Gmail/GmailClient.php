@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Ai\Gmail;
 
 use Ai\Contract\HttpClientInterface;
-use Ai\Exception\AiException;
 use Ai\Exception\HttpException;
 use Ai\Exception\ToolException;
+use Ai\Google\GoogleToken;
 
 /** Само четене от Gmail API. Съобщенията на изключенията са безопасни за връщане към модела. */
 final class GmailClient
@@ -15,16 +15,9 @@ final class GmailClient
     private const API = 'https://gmail.googleapis.com/gmail/v1/users/me/messages';
     private const MAX_BODY_CHARS = 6000;
 
-    private ?string $accessToken = null;
-    private int $expiresAt = 0;
-
-    /** @param \Closure(): ?string $refreshToken чете се лениво, така че липсващ AI_MASTER_KEY да не чупи регистрацията */
-    public function __construct(
-        private HttpClientInterface $http,
-        private ?string $clientId,
-        #[\SensitiveParameter] private ?string $clientSecret,
-        private \Closure $refreshToken,
-    ) {
+    /** @param \Closure(): list<string> $scopes разрешените обхвати на акаунта; чете се лениво */
+    public function __construct(private HttpClientInterface $http, private GoogleToken $token, private \Closure $scopes)
+    {
     }
 
     /** @return list<array{id: string, from: string, subject: string, date: string, snippet: string}> */
@@ -72,14 +65,20 @@ final class GmailClient
     /** @return array<string, mixed> */
     private function get(string $url): array
     {
+        // Само за акаунт с познати обхвати: празен списък означава версия без записани обхвати.
+        $scopes = ($this->scopes)();
+        if ($scopes !== [] && !in_array(GmailOAuth::SCOPE, $scopes, true)) {
+            throw new ToolException('Достъпът до пощата не е разрешен. Акаунтът трябва да се свърже наново и на екрана на Google да се отбеляжи пощата.');
+        }
+
         try {
-            $response = $this->http->get($url, ['Authorization' => 'Bearer ' . $this->token(), 'Accept' => 'application/json'], 15);
+            $response = $this->http->get($url, ['Authorization' => 'Bearer ' . $this->token->get(), 'Accept' => 'application/json'], 15);
         } catch (HttpException) {
             throw new ToolException('Gmail не отговаря.');
         }
 
         if ($response->status === 401 || $response->status === 403) {
-            throw new ToolException('Няма достъп до Gmail. Акаунтът трябва да се свърже наново от администратора.');
+            throw new ToolException(self::accessError($response->body, $response->status));
         }
         $data = json_decode($response->body, true);
         if ($response->status === 404) {
@@ -92,43 +91,21 @@ final class GmailClient
         return $data;
     }
 
-    private function token(): string
+    /** Съобщението сочи причината (изключен API или липсващо право); връща се само наш текст, не отговорът на Google. */
+    private static function accessError(string $body, int $status): string
     {
-        if ($this->accessToken !== null && time() < $this->expiresAt - 30) {
-            return $this->accessToken;
+        $error = json_decode($body, true)['error'] ?? [];
+        $reason = strtolower((string) ($error['errors'][0]['reason'] ?? $error['details'][0]['reason'] ?? ''));
+        $text = strtolower((string) ($error['message'] ?? ''));
+
+        if (str_contains($reason, 'accessnotconfigured') || str_contains($reason, 'service_disabled') || str_contains($text, 'has not been used') || str_contains($text, 'is disabled')) {
+            return 'Gmail API не е включен в Google Cloud проекта. Администраторът трябва да го включи.';
         }
-        if ($this->clientId === null || $this->clientId === '' || $this->clientSecret === null || $this->clientSecret === '') {
-            throw new ToolException('Gmail не е настроен от администратора.');
+        if (str_contains($reason, 'insufficient') || str_contains($reason, 'scope') || str_contains($text, 'insufficient')) {
+            return 'Липсва разрешение за поща. Акаунтът трябва да се свърже наново и да се отбеляжи пощата.';
         }
 
-        try {
-            $refresh = ($this->refreshToken)();
-        } catch (AiException) {
-            throw new ToolException('Gmail не е свързан.');
-        }
-        if ($refresh === null) {
-            throw new ToolException('Gmail не е свързан.');
-        }
-
-        try {
-            $response = $this->http->post(
-                GmailOAuth::TOKEN_URL,
-                ['Content-Type' => 'application/x-www-form-urlencoded', 'Accept' => 'application/json'],
-                http_build_query(['client_id' => $this->clientId, 'client_secret' => $this->clientSecret, 'refresh_token' => $refresh, 'grant_type' => 'refresh_token']),
-                15,
-            );
-        } catch (HttpException) {
-            throw new ToolException('Gmail не отговаря.');
-        }
-
-        $data = json_decode($response->body, true);
-        if ($response->status !== 200 || !is_array($data) || !is_string($data['access_token'] ?? null)) {
-            throw new ToolException('Няма достъп до Gmail. Акаунтът трябва да се свърже наново от администратора.');
-        }
-
-        $this->expiresAt = time() + (int) ($data['expires_in'] ?? 300);
-
-        return $this->accessToken = $data['access_token'];
+        return sprintf('Няма достъп до Gmail (HTTP %d). Акаунтът трябва да се свърже наново от администратора.', $status);
     }
 
     /**
