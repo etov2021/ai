@@ -29,13 +29,29 @@ $this->extend('shared::layouts/admin/default')
 							<?php echo $this->form->type; ?>
 						</div>
 					</div>
+					<?php if (!empty($this->builtins)) : ?>
+					<div class="row mb-3" id="builtin-picker" style="display: none">
+						<div class="col-md-8">
+							<label class="form-label" for="builtin-select">Съществуващи вградени инструменти</label>
+							<select class="form-control" id="builtin-select">
+								<option value="">- избери -</option>
+								<?php foreach ($this->builtins as $b) : ?>
+									<option value="<?php echo escape($b['code']); ?>" data-description="<?php echo escape($b['description']); ?>"<?php echo $b['added'] ? ' disabled="disabled"' : ''; ?>>
+										<?php echo escape($b['code']); ?><?php echo $b['added'] ? ' (вече добавен)' : ''; ?>
+									</option>
+								<?php endforeach; ?>
+							</select>
+							<small class="text-muted">Избраният се попълва в Код, Име и Описание. Параметрите се взимат от кода.</small>
+						</div>
+					</div>
+					<?php endif; ?>
 					<div class="row mb-3">
 						<div class="col-md-12">
 							<?php echo $this->form->description->renderLabel(); ?>
 							<?php echo $this->form->description; ?>
 						</div>
 					</div>
-					<div class="row mb-3">
+					<div class="row mb-3" id="http-fields">
 						<div class="col-md-6">
 							<?php echo $this->form->parameters->renderLabel(); ?>
 							<?php echo $this->form->parameters; ?>
@@ -63,3 +79,36 @@ $this->extend('shared::layouts/admin/default')
 		</div>
 	</div>
 </div>
+<script>
+(function () {
+	var form = document.querySelector('form.form-horizontal');
+	if (!form) { return; }
+	var type = form.querySelector('[name="type"]');
+	var picker = document.getElementById('builtin-picker');
+	var select = document.getElementById('builtin-select');
+	var httpFields = document.getElementById('http-fields');
+	var code = form.querySelector('[name="code"]');
+	var name = form.querySelector('[name="name"]');
+	var description = form.querySelector('[name="description"]');
+	if (!type) { return; }
+
+	// За вграден инструмент параметрите идват от кода, затова полетата за HTTP се скриват.
+	function sync() {
+		var builtin = type.value === 'builtin';
+		if (picker) { picker.style.display = builtin ? '' : 'none'; }
+		if (httpFields) { httpFields.style.display = builtin ? 'none' : ''; }
+	}
+	type.addEventListener('change', sync);
+	sync();
+
+	if (select) {
+		select.addEventListener('change', function () {
+			var option = select.options[select.selectedIndex];
+			if (!option || !option.value) { return; }
+			if (code) { code.value = option.value; }
+			if (name && name.value === '') { name.value = option.value; }
+			if (description && description.value === '') { description.value = option.getAttribute('data-description') || ''; }
+		});
+	}
+})();
+</script>

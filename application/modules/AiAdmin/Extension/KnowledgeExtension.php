@@ -25,8 +25,9 @@ class KnowledgeExtension implements ExtensionInterface, ToolProviderInterface
 
     public function tools(): array
     {
-        $documents = AiServices::get()->documents();
+        $services = AiServices::get();
+        $documents = $services->documents();
 
-        return [new DocsSearchTool($documents), new DocsListTool($documents), new DocsReadTool($documents)];
+        return [new DocsSearchTool($documents, null, $services->semanticSearch()), new DocsListTool($documents), new DocsReadTool($documents)];
     }
 }

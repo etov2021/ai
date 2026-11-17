@@ -28,8 +28,21 @@ $this->extend('shared::layouts/admin/default')
 					</div>
 					<p>
 						<button type="submit" class="btn btn-primary">Качи</button>
+						<?php if ($this->embedStatus !== null) : ?>
+							<button type="submit" class="btn btn-info" formaction="<?php echo escape($this->reindexUrl); ?>" formnovalidate="formnovalidate">Индексирай по смисъл</button>
+						<?php endif; ?>
 						<a class="btn btn-default" href="<?php echo escape($this->homeUrl); ?>">Назад</a>
 					</p>
+					<?php if ($this->embedStatus === null) : ?>
+						<p class="text-muted small">Търсене по смисъл: изключено (задава се в config <code>ai.knowledge.embeddings</code>). Търси се само по ключови думи.</p>
+					<?php elseif ($this->embedStatus === false) : ?>
+						<p class="text-danger small">Търсене по смисъл: таблицата за вектори липсва. Изпълнете миграция <code>013_document_embeddings.sql</code>.</p>
+					<?php else : ?>
+						<p class="text-muted small">
+							Търсене по смисъл (<?php echo escape($this->embedStatus['model']); ?>): индексирани <?php echo (int) $this->embedStatus['indexed']; ?> от <?php echo (int) $this->embedStatus['total']; ?> части.
+							<?php if ($this->embedStatus['indexed'] < $this->embedStatus['total']) : ?>Натиснете „Индексирай по смисъл“, за да се допълнят останалите.<?php endif; ?>
+						</p>
+					<?php endif; ?>
 
 					<div class="table-responsive mt-4">
 						<table class="table table-striped">
@@ -58,6 +71,39 @@ $this->extend('shared::layouts/admin/default')
 							</tbody>
 						</table>
 					</div>
+
+					<hr />
+					<h4>Попитай агент</h4>
+					<?php if (empty($this->agents)) : ?>
+						<p class="text-muted">Няма агент с инструменти за документи. Създай агент и му разреши <code>docs_search</code>, <code>docs_list</code> и <code>docs_read</code> (AI → Агенти).</p>
+					<?php else : ?>
+						<p class="text-muted">Агентът търси в документите и отговаря със свои думи. Търсенето по-долу („Проба“) е без агент.</p>
+						<div class="row mb-2">
+							<div class="col-md-4">
+								<label class="form-label" for="ask-agent">Агент</label>
+								<select class="form-control" id="ask-agent" name="agent">
+									<?php foreach ($this->agents as $code => $agent) : ?>
+										<option value="<?php echo escape($code); ?>"<?php echo ($this->answer !== null && ($this->answer['agent'] ?? '') === $agent->name) ? ' selected="selected"' : ''; ?>><?php echo escape($agent->name); ?></option>
+									<?php endforeach; ?>
+								</select>
+							</div>
+						</div>
+						<div class="row mb-2">
+							<div class="col-md-8">
+								<label class="form-label" for="ask-question">Въпрос</label>
+								<textarea class="form-control" id="ask-question" name="question" rows="3" maxlength="2000" placeholder="напр. Какъв е срокът на договора с Иван?"></textarea>
+							</div>
+						</div>
+						<button type="submit" class="btn btn-primary" formaction="<?php echo escape($this->askUrl); ?>">Попитай</button>
+					<?php endif; ?>
+
+					<?php if ($this->answer !== null) : ?>
+						<div class="mt-3 p-3 border rounded bg-light">
+							<div class="text-muted small">Въпрос към <?php echo escape($this->answer['agent']); ?>: <?php echo escape($this->answer['question']); ?></div>
+							<div class="mt-2" style="white-space: pre-wrap"><?php echo escape($this->answer['text']); ?></div>
+							<div class="text-muted small mt-2"><?php echo escape($this->answer['usage']); ?></div>
+						</div>
+					<?php endif; ?>
 				</form>
 
 				<hr />
@@ -65,7 +111,7 @@ $this->extend('shared::layouts/admin/default')
 				<form action="<?php echo escape($this->searchUrl); ?>" method="get" class="mb-3">
 					<div class="row">
 						<div class="col-md-8">
-							<input class="form-control" type="text" name="q" value="<?php echo escape($this->query); ?>" maxlength="200" placeholder="ключови думи, напр. срок на договор" />
+							<input class="form-control" type="text" name="q" value="<?php echo escape($this->query); ?>" maxlength="200" placeholder="ключови думи или фраза, напр. срок на договор" />
 						</div>
 						<div class="col-md-4"><button type="submit" class="btn btn-info">Търси</button></div>
 					</div>

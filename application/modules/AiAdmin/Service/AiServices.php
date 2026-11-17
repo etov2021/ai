@@ -18,14 +18,20 @@ use Ai\Gmail\GmailOAuth;
 use Ai\Gmail\GmailPoller;
 use Ai\Gmail\MailRepository;
 use Ai\Knowledge\DocumentImporter;
+use Ai\Knowledge\DocumentIndexer;
 use Ai\Knowledge\DocumentRepository;
 use Ai\Knowledge\DocumentRetriever;
+use Ai\Knowledge\EmbeddingRepository;
+use Ai\Knowledge\GeminiEmbedder;
+use Ai\Knowledge\SemanticSearch;
 use Ai\Mcp\McpToolProvider;
 use Ai\Http\CurlClient;
 use Ai\Limits\RateLimiter;
 use Ai\Limits\UsageGuard;
+use Ai\Provider\AnthropicCatalog;
 use Ai\Provider\GeminiCatalog;
 use Ai\Provider\OllamaCatalog;
+use Ai\Provider\OpenAiCatalog;
 use Ai\Registry\ProviderRegistry;
 use Ai\Registry\ProviderResolver;
 use Ai\Security\KeyVault;
@@ -97,6 +103,16 @@ final class AiServices
     public function geminiCatalog(): GeminiCatalog
     {
         return $this->once('geminiCatalog', fn () => new GeminiCatalog($this->http(), $this->policy()));
+    }
+
+    public function anthropicCatalog(): AnthropicCatalog
+    {
+        return $this->once('anthropicCatalog', fn () => new AnthropicCatalog($this->http(), $this->policy()));
+    }
+
+    public function openAiCatalog(): OpenAiCatalog
+    {
+        return $this->once('openAiCatalog', fn () => new OpenAiCatalog($this->http(), $this->policy()));
     }
 
     /** @throws \Ai\Exception\AiException ако AI_MASTER_KEY липсва или е невалиден */
@@ -268,7 +284,48 @@ final class AiServices
 
     public function documentRetriever(): DocumentRetriever
     {
-        return $this->once('documentRetriever', fn () => new DocumentRetriever($this->documents()));
+        return $this->once('documentRetriever', fn () => new DocumentRetriever($this->documents(), null, $this->semanticSearch()));
+    }
+
+    public function embeddings(): EmbeddingRepository
+    {
+        return $this->once('embeddings', fn () => new EmbeddingRepository($this->db()));
+    }
+
+    /** null, ако config ai.knowledge.embeddings.provider е празен. Ключът се взима от посочения доставчик чак при първа заявка. */
+    public function embedder(): ?GeminiEmbedder
+    {
+        $config = (array) config('ai.knowledge.embeddings', []);
+        $code = (string) ($config['provider'] ?? '');
+        if ($code === '') {
+            return null;
+        }
+
+        return $this->once('embedder', fn () => new GeminiEmbedder(
+            $this->http(),
+            $this->policy(),
+            fn (): string => $this->providers()->apiKey($code) ?? throw new AiException(sprintf('За доставчика "%s" няма записан API ключ.', $code)),
+            (string) ($config['model'] ?? 'gemini-embedding-001'),
+            (int) ($config['dimensions'] ?? 768),
+        ));
+    }
+
+    public function semanticSearch(): ?SemanticSearch
+    {
+        $embedder = $this->embedder();
+
+        return $embedder === null ? null : $this->once('semanticSearch', fn () => new SemanticSearch(
+            $this->embeddings(),
+            $embedder,
+            (float) config('ai.knowledge.embeddings.min_similarity', 0.0),
+        ));
+    }
+
+    public function documentIndexer(): ?DocumentIndexer
+    {
+        $embedder = $this->embedder();
+
+        return $embedder === null ? null : $this->once('documentIndexer', fn () => new DocumentIndexer($this->embeddings(), $embedder));
     }
 
     public function fileAnalyzer(): FileAnalyzer

@@ -32,12 +32,14 @@ class Models extends BaseController
         return ['groups' => $groups, 'homeUrl' => $this->url('index'), 'importUrl' => $this->url('models', 'import')];
     }
 
-    /** Добавя моделите на Ollama (изтеглените) и Gemini (от ListModels за ключа) с цена 0; съществуващите не се променят. */
+    private const IMPORT_TYPES = ['ollama', 'gemini', 'openai', 'openai_compatible', 'anthropic'];
+
+    /** Добавя наличните модели на доставчика (Ollama, Gemini, OpenAI, Anthropic и OpenAI-съвместими като Groq и OpenRouter) с цена 0; съществуващите не се променят. */
     public function importAction()
     {
         $importable = array_values(array_filter(
             $this->safely(fn () => $this->ai()->providers()->all()),
-            static fn ($p) => in_array($p->type, ['ollama', 'gemini'], true) && $p->active,
+            static fn ($p) => in_array($p->type, self::IMPORT_TYPES, true) && $p->active,
         ));
 
         $form = new Form($this->formPath('models-import'));
@@ -49,15 +51,23 @@ class Models extends BaseController
             if ($form->isValid($post)) {
                 try {
                     $provider = $this->ai()->providers()->findByCode((string) $post['provider']);
-                    if ($provider === null || !in_array($provider->type, ['ollama', 'gemini'], true)) {
-                        throw new AiException('Импорт се поддържа само за доставчици от тип Ollama и Gemini.');
+                    if ($provider === null || !in_array($provider->type, self::IMPORT_TYPES, true)) {
+                        throw new AiException('Импорт се поддържа за Ollama, Gemini, OpenAI, Anthropic и OpenAI-съвместими доставчици.');
                     }
 
+                    $timeout = min(30, $provider->timeoutSeconds);
+                    $key = $this->ai()->providers()->apiKey($provider->code);
+
                     if ($provider->type === 'gemini') {
-                        $key = $this->ai()->providers()->apiKey($provider->code) ?? throw new AiException('За доставчика няма записан API ключ.');
-                        $found = $this->ai()->geminiCatalog()->models($key, $provider->baseUrl, min(30, $provider->timeoutSeconds));
+                        $found = $this->ai()->geminiCatalog()->models($key ?? throw new AiException('За доставчика няма записан API ключ.'), $provider->baseUrl, $timeout);
+                    } elseif ($provider->type === 'anthropic') {
+                        $found = $this->ai()->anthropicCatalog()->models($key ?? throw new AiException('За доставчика няма записан API ключ.'), $provider->baseUrl, $timeout);
+                    } elseif ($provider->type === 'openai') {
+                        $found = $this->ai()->openAiCatalog()->models($provider->baseUrl ?? \Ai\Provider\OpenAiCatalog::OPENAI_URL, $key ?? throw new AiException('За доставчика няма записан API ключ.'), $timeout);
+                    } elseif ($provider->type === 'openai_compatible') {
+                        $found = $this->ai()->openAiCatalog()->models($provider->baseUrl ?? throw new AiException('Липсва базов адрес на доставчика.'), $key, $timeout);
                     } else {
-                        $names = $this->ai()->ollama()->models($provider->baseUrl ?? ProviderRegistry::OLLAMA_DEFAULT_URL, min(30, $provider->timeoutSeconds));
+                        $names = $this->ai()->ollama()->models($provider->baseUrl ?? ProviderRegistry::OLLAMA_DEFAULT_URL, $timeout);
                         $found = array_map(static fn (string $n): array => ['model' => $n, 'label' => $n, 'contextWindow' => null, 'maxOutputTokens' => null], $names);
                     }
 

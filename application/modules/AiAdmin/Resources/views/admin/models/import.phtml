@@ -12,9 +12,9 @@ $this->extend('shared::layouts/admin/default')
 			<div class="card-body">
 				<h2 class="mb-4"><i class="fa fa-download fa-fw"></i> <?php echo escape($label); ?></h2>
 				<?php if (!$this->hasProviders) : ?>
-					<p class="text-muted">Няма активен доставчик от тип Ollama или Gemini. Създайте го от „Доставчици".</p>
+					<p class="text-muted">Няма активен доставчик, за който се поддържа импорт (Ollama, Gemini, OpenAI, Anthropic, OpenAI-съвместим). Създайте го от „Доставчици".</p>
 				<?php else : ?>
-					<p>Взима списъка на наличните модели (Ollama: изтеглените с <code>ollama list</code>; Gemini: тези, които поддържа ключът за <code>generateContent</code>) и ги добавя с цена 0. Съществуващите модели не се променят.</p>
+					<p>Взима списъка на наличните модели от доставчика (Ollama: изтеглените с <code>ollama list</code>; Gemini и Anthropic: тези, които поддържа ключът; OpenAI и OpenAI-съвместими като Groq и OpenRouter: от <code>/models</code>, без модели за говор, вграждания и изображения) и ги добавя с цена 0. Съществуващите модели не се променят.</p>
 					<form class="form-horizontal" action="<?php echo route(); ?>" method="post" autocomplete="off">
 						<?php echo $this->form->csrf; ?>
 						<div class="row mb-3">

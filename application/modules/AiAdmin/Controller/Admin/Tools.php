@@ -60,6 +60,10 @@ class Tools extends BaseController
                 $parameters = json_decode(trim((string) ($post['parameters'] ?? '')) === '' ? self::EMPTY_SCHEMA : (string) $post['parameters'], true);
                 $configText = (string) ($post['config'] ?? '');
                 $config = $configText === '' ? [] : json_decode($configText, true);
+                // Скритият в изгледа пример за HTTP не се записва към вграден инструмент.
+                if ((string) ($post['type'] ?? '') === 'builtin') {
+                    $config = [];
+                }
 
                 if (!is_array($parameters)) {
                     $form->getElement('parameters')->addError('Невалиден JSON');
@@ -91,6 +95,26 @@ class Tools extends BaseController
             }
         }
 
-        return ['form' => $form, 'item' => $existing];
+        return ['form' => $form, 'item' => $existing, 'builtins' => $existing ? [] : $this->builtinChoices()];
+    }
+
+    /**
+     * Регистрираните вградени инструменти за избор при нов запис; вече добавените са отбелязани.
+     *
+     * @return list<array{code: string, description: string, added: bool}>
+     */
+    private function builtinChoices(): array
+    {
+        try {
+            $added = array_map(static fn ($t) => $t->code, $this->ai()->tools()->all());
+            $choices = [];
+            foreach ($this->ai()->toolRegistry()->builtinDefinitions() as $code => $definition) {
+                $choices[] = ['code' => (string) $code, 'description' => $definition->description, 'added' => in_array($code, $added, true)];
+            }
+
+            return $choices;
+        } catch (\Throwable) {
+            return [];
+        }
     }
 }

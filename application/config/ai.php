@@ -11,6 +11,16 @@ return [
         'calendar' => [
             'timezone' => 'Europe/Sofia',
         ],
+        // Търсене в документите по смисъл (вектори). provider = код на Gemini доставчик (AI → Доставчици) с API ключ; празно = само по ключови думи.
+        // min_similarity (0-1) отрязва несвързани части; ако търсенето пропуска подходящи резултати, го намали.
+        'knowledge' => [
+            'embeddings' => [
+                'provider' => 'gemini',
+                'model' => 'gemini-embedding-001',
+                'dimensions' => 768,
+                'min_similarity' => 0.5,
+            ],
+        ],
         // MCP сървъри (Streamable HTTP). Агентът вижда само инструментите от allowed_tools; токенът се чете от променливата token_env.
         // Пример: 'docs' => ['url' => 'https://example.com/mcp', 'token_env' => 'MCP_DOCS_TOKEN', 'allowed_tools' => ['search'], 'timeout' => 20],
         'mcp' => [
