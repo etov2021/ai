@@ -52,7 +52,7 @@ final class CalendarClient
         }
     }
 
-    /** @return list<array{start: string, end: string, allDay: bool, summary: string, location: string, description: string}> */
+    /** @return list<array<string, mixed>> start/end/allDay/summary/location/description за инструментите и id/link/meet/organizer/attendees/descriptionFull/tentative за страницата */
     public function events(\DateTimeImmutable $from, \DateTimeImmutable $to, string $query, int $limit): array
     {
         $params = [
@@ -60,7 +60,7 @@ final class CalendarClient
             'timeMax' => $to->format(DATE_RFC3339),
             'singleEvents' => 'true',
             'orderBy' => 'startTime',
-            'maxResults' => max(1, min($limit, 50)),
+            'maxResults' => max(1, min($limit, 250)),
             'timeZone' => $this->zone->getName(),
         ];
         if ($query !== '') {
@@ -82,6 +82,13 @@ final class CalendarClient
                 'summary' => self::clean((string) ($item['summary'] ?? '(без заглавие)'), 200),
                 'location' => self::clean((string) ($item['location'] ?? ''), 200),
                 'description' => self::clean((string) ($item['description'] ?? ''), 300),
+                'id' => (string) ($item['id'] ?? ''),
+                'link' => (string) ($item['htmlLink'] ?? ''),
+                'meet' => self::meetLink($item),
+                'organizer' => self::clean((string) ($item['organizer']['displayName'] ?? $item['organizer']['email'] ?? ''), 120),
+                'attendees' => self::attendees((array) ($item['attendees'] ?? [])),
+                'descriptionFull' => self::text((string) ($item['description'] ?? ''), 1500),
+                'tentative' => ($item['status'] ?? '') === 'tentative',
             ];
         }
 
@@ -159,5 +166,47 @@ final class CalendarClient
     private static function clean(string $text, int $max): string
     {
         return mb_substr(trim(preg_replace('/[\p{C}\s]+/u', ' ', $text) ?? ''), 0, $max);
+    }
+
+    /** Описанията в Google често са HTML: тагове се махат, а новите редове се пазят. */
+    private static function text(string $html, int $max): string
+    {
+        $text = preg_replace(['#<br\s*/?>#i', '#</(p|div|li|tr)>#i'], "\n", $html) ?? $html;
+        $text = html_entity_decode(strip_tags($text), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $text = preg_replace('/[^\P{C}\n\t]+/u', '', $text) ?? '';
+
+        return mb_substr(trim(preg_replace("/\n{3,}/", "\n\n", $text) ?? ''), 0, $max);
+    }
+
+    /** @param array<string, mixed> $item */
+    private static function meetLink(array $item): string
+    {
+        $link = (string) ($item['hangoutLink'] ?? '');
+        foreach ((array) ($item['conferenceData']['entryPoints'] ?? []) as $entry) {
+            if (($entry['entryPointType'] ?? '') === 'video' && is_string($entry['uri'] ?? null)) {
+                $link = $entry['uri'];
+                break;
+            }
+        }
+
+        // Само http(s): връзката се показва като адрес за отваряне.
+        return preg_match('#^https://#i', $link) === 1 ? $link : '';
+    }
+
+    /**
+     * @param array<int, mixed> $attendees
+     * @return list<array{name: string, status: string}>
+     */
+    private static function attendees(array $attendees): array
+    {
+        $out = [];
+        foreach (array_slice($attendees, 0, 20) as $a) {
+            if (!is_array($a)) {
+                continue;
+            }
+            $out[] = ['name' => self::clean((string) ($a['displayName'] ?? $a['email'] ?? ''), 120), 'status' => (string) ($a['responseStatus'] ?? '')];
+        }
+
+        return $out;
     }
 }

@@ -10,19 +10,19 @@ use Ai\Contract\ToolInterface;
 use Ai\Message\ToolDefinition;
 use Ai\Tool\RetrieverTool;
 
-/** Търсене по ключови думи в документите, до които агентът има достъп. */
+/** Търсене в документите, до които агентът има достъп: по ключови думи и (ако е настроено) по смисъл. */
 final class DocsSearchTool implements AgentAwareToolInterface
 {
     public const NAME = 'docs_search';
 
     /** @param ?list<int> $documentIds null = всички документи */
-    public function __construct(private DocumentRepository $documents, private ?array $documentIds = null)
+    public function __construct(private DocumentRepository $documents, private ?array $documentIds = null, private ?SemanticSearch $semantic = null)
     {
     }
 
     public function forAgent(Agent $agent): ToolInterface
     {
-        return new self($this->documents, $this->documents->idsForAgent($agent->id));
+        return new self($this->documents, $this->documents->idsForAgent($agent->id), $this->semantic);
     }
 
     public function definition(): ToolDefinition
@@ -39,8 +39,8 @@ final class DocsSearchTool implements AgentAwareToolInterface
     {
         return new RetrieverTool(
             self::NAME,
-            'Търси в документите и връща най-подходящите откъси с името на документа. Заявката е с ключови думи (имена, термини, числа), не цял въпрос. За целия документ ползвай docs_read.',
-            (new DocumentRetriever($this->documents))->scopedTo($this->documentIds),
+            'Търси в документите и връща най-подходящите откъси с името на документа. Заявката е кратка: ключови думи (имена, термини, числа) или фраза със смисъла на търсеното. За целия документ ползвай docs_read.',
+            (new DocumentRetriever($this->documents, null, $this->semantic))->scopedTo($this->documentIds),
             6,
         );
     }

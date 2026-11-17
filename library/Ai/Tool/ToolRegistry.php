@@ -28,6 +28,18 @@ final class ToolRegistry
         $this->builtin[$tool->definition()->name] = $tool;
     }
 
+    /** Регистрираните вградени инструменти (код => описание за модела), за избор в админа. */
+    public function builtinDefinitions(): array
+    {
+        $definitions = [];
+        foreach ($this->builtin as $name => $tool) {
+            $definitions[$name] = $tool->definition();
+        }
+        ksort($definitions);
+
+        return $definitions;
+    }
+
     /**
      * Неактивните инструменти се пропускат, така че админът да може да изключи инструмент без да редактира агентите.
      *
