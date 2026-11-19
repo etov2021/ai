@@ -28,6 +28,11 @@ class McpEndpoint extends Controller
             (string) $this->request->getBody(),
         );
 
+        // При display_errors предупреждения от стартирането влизат в тялото и чупят JSON; те остават в лога.
+        if (ob_get_level() > 0) {
+            ob_clean();
+        }
+
         $response = new Response(null, $result['status']);
         foreach ($result['headers'] as $name => $value) {
             $response = $response->withHeader($name, $value);

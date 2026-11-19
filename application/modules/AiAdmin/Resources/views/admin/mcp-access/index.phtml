@@ -41,6 +41,8 @@ $toolInfo = [
 				<?php /* Един формуляр: CSRF токенът се генерира при всяко показване, затова трябва да е само един. */ ?>
 				<form action="<?php echo escape($this->createUrl); ?>" method="post" autocomplete="off">
 					<?php echo $this->form->csrf; ?>
+					<?php /* Enter в поле изпраща първия бутон: той трябва да е безвреден, не "Спри" или "Изтрий". */ ?>
+					<button type="submit" tabindex="-1" aria-hidden="true" style="position: absolute; left: -9999px" formaction="<?php echo route(); ?>" formnovalidate="formnovalidate"></button>
 
 					<h4 class="mt-4">Токени</h4>
 					<div class="table-responsive">
@@ -73,6 +75,35 @@ $toolInfo = [
 							</tbody>
 						</table>
 					</div>
+
+					<hr />
+					<h4>Проба на връзката</h4>
+					<p class="text-muted">Сървърът се обажда на <code><?php echo escape($this->endpoint); ?></code> по HTTP като външен клиент и показва какво получава. Така се проверяват токенът, правата, заглавието <code>Authorization</code> и инструментите от край до край. Токенът не се запазва.</p>
+					<?php if ($this->testResult !== null) : ?>
+						<div class="alert alert-<?php echo $this->testResult['ok'] ? 'success' : 'danger'; ?>" style="white-space: pre-wrap"><?php echo escape($this->testResult['text']); ?></div>
+					<?php endif; ?>
+					<div class="row mb-2">
+						<div class="col-md-5">
+							<label class="form-label" for="test-token">Токен</label>
+							<input class="form-control" type="password" id="test-token" name="testToken" autocomplete="off" placeholder="aimcp_…" />
+						</div>
+						<div class="col-md-3">
+							<label class="form-label" for="test-tool">Инструмент (празно = само списък)</label>
+							<input class="form-control" type="text" id="test-tool" name="testTool" list="test-tools" placeholder="напр. docs_list" />
+							<datalist id="test-tools">
+								<?php foreach ($this->toolCodes as $code) : ?>
+									<option value="<?php echo escape($code); ?>"></option>
+								<?php endforeach; ?>
+							</datalist>
+						</div>
+					</div>
+					<div class="row mb-2">
+						<div class="col-md-8">
+							<label class="form-label" for="test-args">Аргументи (JSON)</label>
+							<input class="form-control" type="text" id="test-args" name="testArgs" placeholder='напр. {"query": "срок на договора"}' />
+						</div>
+					</div>
+					<p><button type="submit" class="btn btn-info" formaction="<?php echo escape($this->testUrl); ?>" formnovalidate="formnovalidate">Провери</button></p>
 
 					<hr />
 					<h4>Нов токен</h4>

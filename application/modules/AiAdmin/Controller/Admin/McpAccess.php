@@ -3,7 +3,10 @@
 namespace AiAdmin\Controller\Admin;
 
 use Ai\Exception\AiException;
+use Ai\Http\CurlClient;
+use Ai\Mcp\McpClient;
 use Ai\McpServer\McpTokenRepository;
+use Ai\Security\Redactor;
 use AiAdmin\Service\BaseController;
 use Micro\Form\Form;
 
@@ -14,25 +17,32 @@ class McpAccess extends BaseController
         // Токенът идва от createAction през сесията и се показва само веднъж.
         $session = session('AiMcpAccess');
         $newToken = $session->token ?? null;
-        unset($session->token);
-
-        $uri = $this->request->getUri();
+        $testResult = $session->test ?? null;
+        unset($session->token, $session->test);
 
         return [
             'form' => new Form($this->formPath('knowledge')),
+            'testResult' => is_array($testResult) ? $testResult : null,
+            'testUrl' => $this->url('mcp-access', 'test'),
             'tokens' => $this->read(fn () => $this->ai()->mcpTokens()->all()),
             'calls' => $this->read(fn () => $this->ai()->mcpTokens()->recentCalls(30)),
             'documents' => $this->read(fn () => $this->ai()->documents()->all()),
             'agents' => $this->safely(fn () => array_values(array_filter($this->ai()->agents()->all(), static fn ($a) => $a->runnable))),
             'toolCodes' => McpTokenRepository::TOOLS,
             'newToken' => is_string($newToken) ? $newToken : null,
-            'endpoint' => $uri->getScheme() . '://' . $uri->getAuthority() . '/mcp',
+            'endpoint' => $this->endpoint(),
             'enabled' => (bool) config('ai.mcp_server.enabled', false),
             'createUrl' => $this->url('mcp-access', 'create'),
             'toggleUrl' => $this->url('mcp-access', 'toggle'),
             'deleteUrl' => $this->url('mcp-access', 'delete'),
             'homeUrl' => $this->url('index'),
         ];
+    }
+
+    /** Със start в подпапка (напр. /aiimpl/public) адресът не е /mcp, затова се взема основният път на приложението. */
+    private function endpoint(): string
+    {
+        return server_url(base_url('mcp'));
     }
 
     public function createAction()
@@ -68,6 +78,52 @@ class McpAccess extends BaseController
         session('AiMcpAccess')->token = $token;
 
         return $this->redirect($this->url('mcp-access'), 'Токенът е създаден. Копирайте го сега: повече няма да се покаже.');
+    }
+
+    /** Проба от край до край: сървърът се обажда на собствения си /mcp по HTTP като външен клиент (токенът не се пази). */
+    public function testAction()
+    {
+        $post = $this->post();
+        if (!$this->request->isPost() || !(new Form($this->formPath('knowledge')))->isValid($post)) {
+            return $this->redirect($this->url('mcp-access'));
+        }
+
+        $endpoint = $this->endpoint();
+        $token = (string) ($post['testToken'] ?? '');
+        $tool = (string) ($post['testTool'] ?? '');
+        $rawArgs = (string) ($post['testArgs'] ?? '');
+
+        @set_time_limit(300);
+
+        $lines = [];
+        $ok = true;
+        try {
+            if ($token === '') {
+                throw new AiException('Въведете токен.');
+            }
+            $arguments = $rawArgs === '' ? [] : json_decode($rawArgs, true);
+            if (!is_array($arguments)) {
+                throw new AiException('Аргументите трябва да са валиден JSON обект, напр. {"query": "договор"}.');
+            }
+
+            // Без повторни опити: инструментът не бива да се изпълни два пъти.
+            $client = new McpClient(new CurlClient(0), $this->ai()->policy(), $endpoint, $token, 120);
+            $names = array_column($client->listTools(), 'name');
+            $lines[] = 'Връзката работи. Инструменти за този токен: ' . ($names === [] ? 'няма' : implode(', ', $names));
+
+            if ($tool !== '') {
+                $result = $client->callTool($tool, $arguments);
+                $ok = !$result['isError'];
+                $lines[] = ($ok ? 'Резултат от ' : 'Грешка от ') . $tool . ":\n" . $result['text'];
+            }
+        } catch (AiException $e) {
+            $ok = false;
+            $lines[] = Redactor::redact($e->getMessage());
+        }
+
+        session('AiMcpAccess')->test = ['ok' => $ok, 'endpoint' => $endpoint, 'text' => implode("\n\n", $lines)];
+
+        return $this->redirect($this->url('mcp-access'));
     }
 
     public function toggleAction()
