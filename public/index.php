@@ -30,7 +30,8 @@ if (is_debug()) {
 
 try {
 
-    if (substr_count($_SERVER['HTTP_ACCEPT_ENCODING'], 'gzip')) {
+    // Клиенти без Accept-Encoding (cURL, сървърни заявки) не бива да получават предупреждение в тялото на отговора.
+    if (substr_count($_SERVER['HTTP_ACCEPT_ENCODING'] ?? '', 'gzip')) {
         ob_start('ob_gzhandler');
     } else {
         ob_start();
