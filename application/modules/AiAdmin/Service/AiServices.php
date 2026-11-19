@@ -21,6 +21,14 @@ use Ai\Knowledge\DocumentImporter;
 use Ai\Knowledge\DocumentIndexer;
 use Ai\Knowledge\DocumentRepository;
 use Ai\Knowledge\DocumentRetriever;
+use Ai\Knowledge\DocsListTool;
+use Ai\Knowledge\DocsReadTool;
+use Ai\Knowledge\DocsSearchTool;
+use Ai\McpServer\AskAgentTool;
+use Ai\McpServer\McpGateway;
+use Ai\McpServer\McpServer;
+use Ai\McpServer\McpToken;
+use Ai\McpServer\McpTokenRepository;
 use Ai\Knowledge\EmbeddingRepository;
 use Ai\Knowledge\GeminiEmbedder;
 use Ai\Knowledge\SemanticSearch;
@@ -326,6 +334,32 @@ final class AiServices
         $embedder = $this->embedder();
 
         return $embedder === null ? null : $this->once('documentIndexer', fn () => new DocumentIndexer($this->embeddings(), $embedder));
+    }
+
+    public function mcpTokens(): McpTokenRepository
+    {
+        return $this->once('mcpTokens', fn () => new McpTokenRepository($this->db(), time(...)));
+    }
+
+    /** Външните клиенти получават само тези четири инструмента и само в рамките на правата на своя токен. */
+    public function mcpGateway(): McpGateway
+    {
+        return $this->once('mcpGateway', fn () => new McpGateway(
+            $this->mcpTokens(),
+            new McpServer(
+                fn (McpToken $t): array => [
+                    'docs_search' => new DocsSearchTool($this->documents(), $t->documentIds, $this->semanticSearch()),
+                    'docs_list' => new DocsListTool($this->documents(), $t->documentIds),
+                    'docs_read' => new DocsReadTool($this->documents(), $t->documentIds),
+                    'ask_agent' => new AskAgentTool($this->agentService(), (string) $t->agentCode),
+                ],
+                $this->mcpTokens(),
+                (int) config('ai.mcp_server.max_result_chars', 8000),
+            ),
+            new RateLimiter($this->db()),
+            time(...),
+            array_values(array_filter((array) config('ai.mcp_server.allowed_origins', []), 'is_string')),
+        ));
     }
 
     public function fileAnalyzer(): FileAnalyzer

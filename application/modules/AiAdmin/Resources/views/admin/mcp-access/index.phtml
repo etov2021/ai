@@ -1,0 +1,171 @@
+<?php
+
+$label = 'AI - MCP достъп (външни клиенти)';
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label);
+
+$toolInfo = [
+    'docs_search' => 'търсене в документите (по смисъл и ключови думи)',
+    'docs_list' => 'списък на документите',
+    'docs_read' => 'четене на цял документ по части',
+    'ask_agent' => 'въпрос към избран агент (агентът ползва всичките си инструменти и документи)',
+];
+
+?>
+<div class="row">
+	<div class="col-12">
+		<div class="card">
+			<div class="card-body">
+				<h2 class="mb-4"><i class="fa fa-key fa-fw"></i> <?php echo escape($label); ?></h2>
+				<p class="text-muted">
+					Външни MCP клиенти (Claude Desktop, VS Code, Cursor) ползват този проект през адреса по-долу. Всеки клиент има свой токен със собствени права:
+					кои инструменти вижда, до кои документи има достъп и колко заявки може да прави. Клиентите нямат достъп до базата данни и файловете, а само до резултата от избраните инструменти.
+				</p>
+				<?php if (!$this->enabled) : ?>
+					<div class="alert alert-warning">MCP сървърът е изключен (<code>ai.mcp_server.enabled</code> в config/ai.php). Адресът връща 404.</div>
+				<?php endif; ?>
+				<p>Адрес на сървъра: <code><?php echo escape($this->endpoint); ?></code> (HTTP POST, заглавие <code>Authorization: Bearer &lt;токен&gt;</code>)</p>
+
+				<?php if ($this->newToken !== null) : ?>
+					<div class="alert alert-success">
+						<strong>Нов токен (показва се само сега):</strong><br />
+						<code style="font-size: 1.1em; user-select: all"><?php echo escape($this->newToken); ?></code>
+					</div>
+				<?php endif; ?>
+
+				<?php if ($this->tokens === false) : ?>
+					<div class="alert alert-danger">Таблиците липсват. Изпълнете миграция <code>014_mcp_access.sql</code>.</div>
+				<?php endif; ?>
+
+				<?php /* Един формуляр: CSRF токенът се генерира при всяко показване, затова трябва да е само един. */ ?>
+				<form action="<?php echo escape($this->createUrl); ?>" method="post" autocomplete="off">
+					<?php echo $this->form->csrf; ?>
+
+					<h4 class="mt-4">Токени</h4>
+					<div class="table-responsive">
+						<table class="table table-striped">
+							<thead>
+								<tr><th>Име</th><th>Токен</th><th>Инструменти</th><th>Документи</th><th>Агент</th><th>Лимит/мин</th><th>Изтича</th><th>Последно</th><th>Активен</th><th></th></tr>
+							</thead>
+							<tbody>
+							<?php foreach (($this->tokens ?: []) as $t) : ?>
+								<tr>
+									<td><?php echo escape($t['name']); ?></td>
+									<td><code><?php echo escape($t['tokenPrefix']); ?>…</code></td>
+									<td><?php echo escape(str_replace(',', ', ', $t['tools'])); ?></td>
+									<td><?php echo $t['documentIds'] === null ? 'всички' : count(array_filter(explode(',', $t['documentIds']), 'strlen')) . ' избрани'; ?></td>
+									<td><?php echo escape((string) $t['agentCode']); ?></td>
+									<td><?php echo (int) $t['rateLimitPerMinute']; ?></td>
+									<td><?php echo escape((string) $t['expires']); ?></td>
+									<td><?php echo escape((string) $t['lastUsed']); ?></td>
+									<td><?php echo $t['active'] ? 'да' : 'не'; ?></td>
+									<td>
+										<button type="submit" class="btn btn-default btn-sm" name="id" value="<?php echo (int) $t['id']; ?>" formaction="<?php echo escape($this->toggleUrl); ?>" formnovalidate="formnovalidate"><?php echo $t['active'] ? 'Спри' : 'Пусни'; ?></button>
+										<button type="submit" class="btn btn-danger btn-sm" name="id" value="<?php echo (int) $t['id']; ?>" formaction="<?php echo escape($this->deleteUrl); ?>" formnovalidate="formnovalidate"
+											onclick="return confirm('Токенът ще спре да работи веднага. Да се изтрие ли?');">Изтрий</button>
+									</td>
+								</tr>
+							<?php endforeach; ?>
+							<?php if (empty($this->tokens)) : ?>
+								<tr><td colspan="10" class="text-muted">Няма токени.</td></tr>
+							<?php endif; ?>
+							</tbody>
+						</table>
+					</div>
+
+					<hr />
+					<h4>Нов токен</h4>
+					<div class="row mb-3">
+						<div class="col-md-5">
+							<label class="form-label" for="mcp-name">Име (за кого е)</label>
+							<input class="form-control" type="text" id="mcp-name" name="name" maxlength="100" placeholder="напр. Claude Desktop - Иван" />
+						</div>
+						<div class="col-md-2">
+							<label class="form-label" for="mcp-rate">Заявки в минута</label>
+							<input class="form-control" type="number" id="mcp-rate" name="rateLimitPerMinute" value="30" min="1" max="1000" />
+						</div>
+						<div class="col-md-3">
+							<label class="form-label" for="mcp-expires">Валиден до (по избор)</label>
+							<input class="form-control" type="date" id="mcp-expires" name="expires" />
+						</div>
+					</div>
+
+					<div class="mb-3">
+						<label class="form-label">Инструменти</label>
+						<?php foreach ($this->toolCodes as $code) : ?>
+							<div>
+								<label class="checkbox-inline">
+									<input type="checkbox" name="tools[]" value="<?php echo escape($code); ?>"<?php echo $code === 'docs_search' ? ' checked="checked"' : ''; ?> />
+									<strong><?php echo escape($code); ?></strong> - <?php echo escape($toolInfo[$code] ?? ''); ?>
+								</label>
+							</div>
+						<?php endforeach; ?>
+					</div>
+
+					<div class="mb-3">
+						<label class="form-label">Документи (за docs_search, docs_list и docs_read)</label>
+						<div>
+							<label class="checkbox-inline">
+								<input type="checkbox" name="allDocuments" value="1" /> <strong>Всички документи</strong> (включително бъдещите)
+							</label>
+						</div>
+						<?php foreach (($this->documents ?: []) as $doc) : ?>
+							<div>
+								<label class="checkbox-inline">
+									<input type="checkbox" name="documents[]" value="<?php echo (int) $doc['id']; ?>" />
+									<?php echo escape($doc['title']); ?> (<?php echo (int) $doc['chunkCount']; ?> части)
+								</label>
+							</div>
+						<?php endforeach; ?>
+						<small class="text-muted">Без избрани документи и без „всички“ токенът не се създава.</small>
+					</div>
+
+					<div class="row mb-3">
+						<div class="col-md-5">
+							<label class="form-label" for="mcp-agent">Агент (само за ask_agent)</label>
+							<select class="form-control" id="mcp-agent" name="agent">
+								<option value="">-</option>
+								<?php foreach ($this->agents as $agent) : ?>
+									<option value="<?php echo escape($agent->code); ?>"><?php echo escape($agent->name); ?> (<?php echo escape($agent->code); ?>)</option>
+								<?php endforeach; ?>
+							</select>
+							<small class="text-muted">Клиентът не избира агент. Агентът ползва собствените си инструменти (напр. поща и календар) и бюджети, затова избирайте внимателно.</small>
+						</div>
+					</div>
+
+					<div class="mb-3">
+						<label class="checkbox-inline">
+							<input type="checkbox" name="maskPii" value="1" checked="checked" /> Маскирай ЕГН, IBAN и номера на карти в отговорите
+						</label>
+					</div>
+
+					<p><button type="submit" class="btn btn-primary">Създай токен</button> <a class="btn btn-default" href="<?php echo escape($this->homeUrl); ?>">Назад</a></p>
+				</form>
+
+				<hr />
+				<h4>Последни извиквания</h4>
+				<div class="table-responsive">
+					<table class="table table-striped">
+						<thead><tr><th>Време</th><th>Токен</th><th>Инструмент</th><th>Резултат</th><th>Време (мс)</th><th>Знаци</th></tr></thead>
+						<tbody>
+						<?php foreach (($this->calls ?: []) as $c) : ?>
+							<tr>
+								<td><?php echo escape($c['created']); ?></td>
+								<td><?php echo escape($c['tokenName']); ?></td>
+								<td><?php echo escape($c['tool']); ?></td>
+								<td><?php echo escape($c['status']); ?></td>
+								<td><?php echo (int) $c['durationMs']; ?></td>
+								<td><?php echo (int) $c['responseChars']; ?></td>
+							</tr>
+						<?php endforeach; ?>
+						<?php if (empty($this->calls)) : ?>
+							<tr><td colspan="6" class="text-muted">Още няма извиквания.</td></tr>
+						<?php endif; ?>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>

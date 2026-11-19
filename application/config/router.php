@@ -41,6 +41,11 @@ return [
                 'description' => 'Админ',
             ],
             // SITE Routes
+            'mcp-server' => [
+                'pattern' => '/mcp',
+                'handler' => 'AiAdmin\Controller\McpEndpoint@index',
+                'description' => 'MCP сървър за външни клиенти',
+            ],
             'file-download' => [
                 'pattern' => '/file/download/{hash}',
                 'handler' => 'Files\Controller\Download@index',
