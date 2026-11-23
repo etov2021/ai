@@ -1,0 +1,83 @@
+<?php
+
+$label = 'AI - Layout за сайта: ' . $this->source['title'];
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label);
+
+$source = $this->source;
+
+?>
+<div class="row">
+	<div class="col-12">
+		<div class="card">
+			<div class="card-body">
+				<h2 class="mb-3"><i class="fa fa-columns fa-fw"></i> <?php echo escape($label); ?></h2>
+				<p class="text-muted">
+					Превръща HTML в layout за <strong>сайта (frontend)</strong>: рамката (хедър, меню, футър) се запазва, а областта за съдържание става място за изгледите.
+					Записват се само <code>application/resources/layouts/&lt;име&gt;/default.phtml</code> и файловете му в <code>public/templates/&lt;име&gt;/</code>.
+					Админът (<code>layouts/admin</code>, <code>templates/admin</code>) не се променя; съществуващ layout, който не е създаден от дизайнера, не се презаписва.
+				</p>
+
+				<?php /* Един формуляр: CSRF токенът се генерира при всяко показване, затова трябва да е само един. */ ?>
+				<form action="<?php echo escape($this->previewUrl); ?>" method="post" autocomplete="off">
+					<?php echo $this->form->csrf; ?>
+					<input type="hidden" name="source" value="<?php echo escape($source['type']); ?>" />
+					<input type="hidden" name="id" value="<?php echo (int) $source['id']; ?>" />
+					<input type="hidden" name="v" value="<?php echo (int) $source['version']; ?>" />
+
+					<div class="row mb-3">
+						<div class="col-md-3">
+							<label class="form-label" for="name">Име на layout-а</label>
+							<input class="form-control" type="text" id="name" name="name" value="<?php echo escape($this->name); ?>" maxlength="40" pattern="[a-z][a-z0-9\-]{1,39}" />
+							<small class="text-muted">малки латински букви, цифри, тире</small>
+						</div>
+						<div class="col-md-4">
+							<label class="form-label" for="selector">Област за съдържание (по избор)</label>
+							<input class="form-control" type="text" id="selector" name="selector" value="<?php echo escape($this->selector); ?>" maxlength="60" placeholder="main, #content, .page-content" />
+							<small class="text-muted">Празно = автоматично (main, role=main, #main, #content, .page-content).</small>
+						</div>
+						<div class="col-md-3">
+							<label class="form-label d-block">&nbsp;</label>
+							<label class="checkbox-inline">
+								<input type="checkbox" name="overwrite" value="1"<?php echo $this->overwrite ? ' checked="checked"' : ''; ?> /> Презапиши мой layout
+							</label>
+						</div>
+					</div>
+
+					<p>
+						<button type="submit" class="btn btn-info">Покажи резултата</button>
+						<button type="submit" class="btn btn-default" formaction="<?php echo escape($this->downloadUrl); ?>" formnovalidate="formnovalidate">Свали default.phtml</button>
+						<button type="submit" class="btn btn-success" formaction="<?php echo escape($this->writeUrl); ?>"
+							onclick="return confirm('Layout-ът ще бъде записан в application/resources/layouts. Да продължа ли?');">Запиши в layouts</button>
+						<a class="btn btn-default" href="<?php echo escape($this->backUrl); ?>">Назад</a>
+					</p>
+				</form>
+
+				<?php if ($this->result !== null) : ?>
+					<hr />
+					<h4>Доклад</h4>
+					<ul>
+						<?php foreach ($this->result['report'] as $line) : ?>
+							<li><?php echo escape($line); ?></li>
+						<?php endforeach; ?>
+						<?php if (!empty($this->result['vendor'])) : ?>
+							<li>Bootstrap 5 се копира в <code>public/templates/<?php echo escape($this->name); ?>/</code> (css/bootstrap.min.css и js/bootstrap.bundle.min.js).</li>
+						<?php endif; ?>
+						<?php if (!empty($source['files'])) : ?>
+							<li>Файловете на пакета (CSS, JS, картинки, шрифтове; без HTML страниците) се копират в <code>public/templates/<?php echo escape($this->name); ?>/</code>.</li>
+						<?php endif; ?>
+					</ul>
+
+					<h4>Код (default.phtml)</h4>
+					<textarea class="form-control" rows="18" readonly="readonly" style="font-family:monospace"><?php echo escape($this->result['code']); ?></textarea>
+
+					<h5 class="mt-3">Ползване във view</h5>
+					<pre class="border rounded p-2 bg-light">$this->extend('shared::layouts/<?php echo escape($this->name); ?>/default')
+     ->section('title', 'Заглавие');</pre>
+					<p class="text-muted">Съдържанието на страницата е в секция <code>content</code>; допълнителни стилове и скриптове се добавят със секции <code>styles</code> и <code>scripts</code>.</p>
+				<?php endif; ?>
+			</div>
+		</div>
+	</div>
+</div>

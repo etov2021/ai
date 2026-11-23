@@ -4,6 +4,14 @@ namespace AiAdmin\Service;
 
 use Ai\Agent\AgentService;
 use Ai\Conversation\ConversationService;
+use Ai\Design\DesignRepository;
+use Ai\Design\DesignService;
+use Ai\Design\LayoutBuilder;
+use Ai\Design\LayoutWriter;
+use Ai\Design\PackageImporter;
+use Ai\Design\ReferenceFetcher;
+use Ai\Design\TemplateImporter;
+use Ai\Design\TemplateRepository;
 use Ai\Contract\ExtensionInterface;
 use Ai\Exception\AiException;
 use Ai\Extension\ExtensionRegistry;
@@ -360,6 +368,49 @@ final class AiServices
             time(...),
             array_values(array_filter((array) config('ai.mcp_server.allowed_origins', []), 'is_string')),
         ));
+    }
+
+    public function designs(): DesignRepository
+    {
+        return $this->once('designs', fn () => new DesignRepository($this->db()));
+    }
+
+    public function designService(): DesignService
+    {
+        return $this->once('designService', fn () => new DesignService(
+            $this->agentService(),
+            $this->designs(),
+            $this->referenceFetcher(),
+            $this->templates(),
+        ));
+    }
+
+    /** Образците са произволни адреси от админа: строга политика (само публични https), независимо от allow_private_hosts. */
+    public function referenceFetcher(): ReferenceFetcher
+    {
+        return $this->once('referenceFetcher', fn () => new ReferenceFetcher(new CurlClient(0, 10, 500, null, 1_500_000), new Policy(false)));
+    }
+
+    /** Файловете на пакетите са в data/design/templates, извън public. */
+    public function templates(): TemplateRepository
+    {
+        return $this->once('templates', fn () => new TemplateRepository($this->db(), data_path('design/templates')));
+    }
+
+    public function templateImporter(): TemplateImporter
+    {
+        return $this->once('templateImporter', fn () => new TemplateImporter($this->templates(), new PackageImporter(), $this->referenceFetcher()));
+    }
+
+    public function layoutBuilder(): LayoutBuilder
+    {
+        return $this->once('layoutBuilder', fn () => new LayoutBuilder());
+    }
+
+    /** Единственият път за запис: application/resources/layouts/<име> и public/templates/<име>. Админът не се пипа. */
+    public function layoutWriter(): LayoutWriter
+    {
+        return $this->once('layoutWriter', fn () => new LayoutWriter(app_path('resources/layouts'), public_path()));
     }
 
     public function fileAnalyzer(): FileAnalyzer

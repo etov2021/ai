@@ -1,0 +1,93 @@
+<?php
+
+$label = 'AI - Шаблони за сайта';
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label);
+
+?>
+<div class="row">
+	<div class="col-12">
+		<div class="card">
+			<div class="card-body">
+				<h2 class="mb-4"><i class="fa fa-th-large fa-fw"></i> <?php echo escape($label); ?></h2>
+				<p class="text-muted">
+					Библиотека с готови шаблони за <strong>сайта (frontend)</strong>. Шаблонът може да е образец за нов макет или да стане layout в <code>application/resources/layouts</code>.
+					Админът не се променя.
+				</p>
+
+				<?php if ($this->missingTable) : ?>
+					<div class="alert alert-danger">Таблицата липсва. Изпълнете миграция <code>016_ui_templates.sql</code>.</div>
+				<?php endif; ?>
+
+				<?php /* Един формуляр: CSRF токенът се генерира при всяко показване, затова трябва да е само един. */ ?>
+				<form action="<?php echo escape($this->importUrl); ?>" method="post" enctype="multipart/form-data" autocomplete="off">
+					<?php echo $this->form->csrf; ?>
+					<button type="submit" tabindex="-1" aria-hidden="true" style="position: absolute; left: -9999px" formaction="<?php echo route(); ?>" formnovalidate="formnovalidate"></button>
+
+					<h4>Добавяне на шаблон</h4>
+					<div class="row mb-3">
+						<div class="col-md-5">
+							<label class="form-label" for="name">Име</label>
+							<input class="form-control" type="text" id="name" name="name" maxlength="100" placeholder="напр. Корпоративен лендинг" />
+						</div>
+						<div class="col-md-4">
+							<label class="form-label" for="tags">Етикети (по избор)</label>
+							<input class="form-control" type="text" id="tags" name="tags" maxlength="200" placeholder="лендинг, светъл, bootstrap" />
+						</div>
+					</div>
+
+					<div class="row mb-3">
+						<div class="col-md-12">
+							<label class="form-label" for="html">1. Поставен HTML код</label>
+							<textarea class="form-control" id="html" name="html" rows="5" placeholder="&lt;!DOCTYPE html&gt;..." style="font-family:monospace"></textarea>
+							<button type="submit" class="btn btn-primary mt-2" name="source" value="paste">Импортирай кода</button>
+						</div>
+					</div>
+
+					<div class="row mb-3">
+						<div class="col-md-8">
+							<label class="form-label" for="templateFile">2. Файл: .html или .zip пакет (със CSS, JS и картинки)</label>
+							<input class="form-control" type="file" id="templateFile" name="templateFile" accept=".html,.htm,.zip" />
+							<small class="text-muted">Лимит на сървъра: <?php echo escape($this->uploadLimit); ?> (<code>upload_max_filesize</code> и <code>post_max_size</code> в php.ini). Пакетите се разархивират безопасно: само HTML, CSS, JS, JSON, SVG, картинки и шрифтове; PHP и скритите файлове се пропускат.</small><br />
+							<button type="submit" class="btn btn-primary mt-2" name="source" value="file">Качи файла</button>
+						</div>
+					</div>
+
+					<div class="row mb-3">
+						<div class="col-md-8">
+							<label class="form-label" for="url">3. Адрес на страница (само публични https)</label>
+							<input class="form-control" type="url" id="url" name="url" maxlength="500" placeholder="https://example.com" />
+							<small class="text-muted">Записва се само описание на структурата и стила, като образец за нови макети. Такъв шаблон не може да стане layout.</small><br />
+							<button type="submit" class="btn btn-primary mt-2" name="source" value="url">Импортирай от адрес</button>
+						</div>
+					</div>
+
+					<p><a class="btn btn-default" href="<?php echo escape($this->designUrl); ?>">UI дизайнер</a> <a class="btn btn-default" href="<?php echo escape($this->homeUrl); ?>">Назад</a></p>
+				</form>
+
+				<hr />
+				<h4>Шаблони</h4>
+				<div class="table-responsive">
+					<table class="table table-striped">
+						<thead><tr><th>Име</th><th>Етикети</th><th>Източник</th><th>Пакет</th><th>Добавен</th></tr></thead>
+						<tbody>
+						<?php foreach ($this->rows as $row) : ?>
+							<tr>
+								<td><a href="<?php echo escape($row['url']); ?>"><?php echo escape($row['item']['name']); ?></a></td>
+								<td><?php echo escape($row['item']['tags']); ?></td>
+								<td><?php echo escape(['paste' => 'код', 'zip' => 'zip', 'url' => 'адрес'][$row['item']['source']] ?? $row['item']['source']); ?></td>
+								<td><?php echo $row['item']['hasPackage'] ? 'да' : 'не'; ?></td>
+								<td><?php echo escape($row['item']['created']); ?></td>
+							</tr>
+						<?php endforeach; ?>
+						<?php if (empty($this->rows)) : ?>
+							<tr><td colspan="5" class="text-muted">Още няма шаблони.</td></tr>
+						<?php endif; ?>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>

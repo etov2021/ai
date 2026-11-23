@@ -1,0 +1,143 @@
+<?php
+
+$label = 'AI - UI дизайнер';
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label);
+
+$select = static function (string $name, array $options, string $selected = '', string $id = ''): string {
+    $html = '<select class="form-control" name="' . escape($name) . '" id="' . escape($id ?: $name) . '">';
+    foreach ($options as $value => $text) {
+        $html .= '<option value="' . escape((string) $value) . '"' . ((string) $value === $selected ? ' selected="selected"' : '') . '>' . escape($text) . '</option>';
+    }
+
+    return $html . '</select>';
+};
+
+?>
+<div class="row">
+	<div class="col-12">
+		<div class="card">
+			<div class="card-body">
+				<h2 class="mb-4"><i class="fa fa-paint-brush fa-fw"></i> <?php echo escape($label); ?></h2>
+				<p class="text-muted">
+					Задаваш параметри (тип екран, стил, цветове, шрифт), а избран агент генерира HTML/CSS макет. Макетът се вижда в изолиран преглед, може да се копира и да се доразвива с текстови указания; всяка промяна е нова версия.
+					Макетите са самостоятелни: без JavaScript и без външни файлове.
+				</p>
+
+				<?php if ($this->missingTable) : ?>
+					<div class="alert alert-danger">Таблиците липсват. Изпълнете миграция <code>015_ui_designs.sql</code>.</div>
+				<?php endif; ?>
+				<?php if (empty($this->agents)) : ?>
+					<div class="alert alert-warning">Няма агент, който може да се изпълнява. Създайте агент (AI → Агенти) с „Макс. токени“ поне 8000 и „Макс. време“ поне 120 секунди. Инструменти не са нужни.</div>
+				<?php endif; ?>
+
+				<form action="<?php echo escape($this->createUrl); ?>" method="post" autocomplete="off">
+					<?php echo $this->form->csrf; ?>
+					<h4>Нов макет</h4>
+					<div class="row mb-3">
+						<div class="col-md-5">
+							<label class="form-label" for="title">Заглавие</label>
+							<input class="form-control" type="text" id="title" name="title" maxlength="150" placeholder="напр. Начална страница на фитнес зала" />
+						</div>
+						<div class="col-md-3">
+							<label class="form-label" for="screen">Тип екран</label>
+							<?php echo $select('screen', $this->screens); ?>
+						</div>
+						<div class="col-md-4">
+							<label class="form-label" for="agent">Агент</label>
+							<?php echo $select('agent', $this->agents, $this->defaultAgent); ?>
+						</div>
+					</div>
+					<div class="row mb-3">
+						<div class="col-md-3">
+							<label class="form-label" for="style">Стил</label>
+							<?php echo $select('style', $this->styles); ?>
+						</div>
+						<div class="col-md-2">
+							<label class="form-label" for="theme">Тема</label>
+							<?php echo $select('theme', $this->themes); ?>
+						</div>
+						<div class="col-md-3">
+							<label class="form-label" for="font">Шрифт</label>
+							<?php echo $select('font', $this->fonts); ?>
+						</div>
+						<div class="col-md-2">
+							<label class="form-label" for="lang">Език на текстовете</label>
+							<?php echo $select('lang', $this->langs); ?>
+						</div>
+					</div>
+					<div class="row mb-3">
+						<div class="col-md-2">
+							<label class="form-label" for="primary">Основен цвят</label>
+							<input class="form-control" type="color" id="primary" name="primary" value="#2563eb" />
+						</div>
+						<div class="col-md-2">
+							<label class="form-label" for="accent">Акцентен цвят</label>
+							<input class="form-control" type="color" id="accent" name="accent" value="#f59e0b" />
+						</div>
+						<div class="col-md-2">
+							<label class="form-label" for="radius">Заобляне (px)</label>
+							<input class="form-control" type="number" id="radius" name="radius" value="8" min="0" max="32" />
+						</div>
+					</div>
+					<div class="row mb-3">
+						<div class="col-md-4">
+							<label class="form-label" for="stack">Стек (за сайта)</label>
+							<?php echo $select('stack', $this->stacks); ?>
+							<small class="text-muted">Bootstrap 5 дава макет, който може да стане layout на сайта с вградения Bootstrap.</small>
+						</div>
+						<div class="col-md-4">
+							<label class="form-label" for="referenceTemplateId">Образец: шаблон от библиотеката</label>
+							<?php echo $select('referenceTemplateId', ['' => '- без шаблон -'] + $this->templateOptions, $this->selectedTemplate); ?>
+							<small class="text-muted"><a href="<?php echo escape($this->templatesUrl); ?>">Библиотека с шаблони</a></small>
+						</div>
+					</div>
+					<div class="row mb-3">
+						<div class="col-md-6">
+							<label class="form-label" for="referenceUrl">Образец: адрес на страница (по избор)</label>
+							<input class="form-control" type="url" id="referenceUrl" name="referenceUrl" maxlength="500" placeholder="https://example.com" />
+							<small class="text-muted">Само публични https страници. Сваля се структурата и стилът, не текстовете и логата.</small>
+						</div>
+						<div class="col-md-6">
+							<label class="form-label" for="referenceMode">Как да се ползва образецът</label>
+							<?php echo $select('referenceMode', $this->referenceModes); ?>
+						</div>
+					</div>
+					<div class="row mb-3">
+						<div class="col-md-10">
+							<label class="form-label" for="description">Съдържание и желания (по избор)</label>
+							<textarea class="form-control" id="description" name="description" rows="4" maxlength="2000" placeholder="напр. Заглавна секция с бутон за записване, три абонамента с цени, графици на занятията, контакти"></textarea>
+						</div>
+					</div>
+					<p>
+						<button type="submit" class="btn btn-primary">Генерирай макет</button>
+						<a class="btn btn-default" href="<?php echo escape($this->homeUrl); ?>">Назад</a>
+						<a class="btn btn-default" href="<?php echo escape($this->templatesUrl); ?>">Шаблони</a>
+						<span class="text-muted">Генерирането може да отнеме до 2 минути.</span>
+					</p>
+				</form>
+
+				<hr />
+				<h4>Макети</h4>
+				<div class="table-responsive">
+					<table class="table table-striped">
+						<thead><tr><th>Заглавие</th><th>Версии</th><th>Създаден</th></tr></thead>
+						<tbody>
+						<?php foreach ($this->rows as $row) : ?>
+							<tr>
+								<td><a href="<?php echo escape($row['url']); ?>"><?php echo escape($row['item']['title']); ?></a></td>
+								<td><?php echo (int) $row['item']['versions']; ?></td>
+								<td><?php echo escape($row['item']['created']); ?></td>
+							</tr>
+						<?php endforeach; ?>
+						<?php if (empty($this->rows)) : ?>
+							<tr><td colspan="3" class="text-muted">Още няма макети.</td></tr>
+						<?php endif; ?>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>

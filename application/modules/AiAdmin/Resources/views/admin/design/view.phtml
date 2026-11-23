@@ -1,0 +1,102 @@
+<?php
+
+$label = 'AI - Макет: ' . $this->design['title'];
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label);
+
+$brief = $this->brief;
+
+?>
+<div class="row">
+	<div class="col-12">
+		<div class="card">
+			<div class="card-body">
+				<h2 class="mb-3"><i class="fa fa-paint-brush fa-fw"></i> <?php echo escape($label); ?></h2>
+				<p class="text-muted">
+					<?php echo escape(Ai\Design\DesignBrief::SCREENS[$brief->screen]); ?>,
+					<?php echo escape(Ai\Design\DesignBrief::STYLES[$brief->style]); ?>,
+					тема: <?php echo escape(Ai\Design\DesignBrief::THEMES[$brief->theme]); ?>,
+					цветове: <span style="display:inline-block;width:1em;height:1em;vertical-align:middle;background:<?php echo escape($brief->primary); ?>"></span> <?php echo escape($brief->primary); ?>
+					<span style="display:inline-block;width:1em;height:1em;vertical-align:middle;background:<?php echo escape($brief->accent); ?>"></span> <?php echo escape($brief->accent); ?>,
+					заобляне: <?php echo (int) $brief->radius; ?>px, език: <?php echo escape(Ai\Design\DesignBrief::LANGS[$brief->lang]); ?>
+					<?php if ($brief->description !== '') : ?><br />Желания: <?php echo escape($brief->description); ?><?php endif; ?>
+					<?php if ($brief->referenceUrl !== '') : ?><br />Образец: <?php echo escape($brief->referenceUrl); ?> (<?php echo escape(Ai\Design\DesignBrief::REFERENCE_MODES[$brief->referenceMode] ?? $brief->referenceMode); ?>)<?php endif; ?>
+				</p>
+
+				<p>
+					<strong>Версия:</strong>
+					<?php foreach ($this->versions as $v) : ?>
+						<a class="btn btn-sm <?php echo $v['version'] === $this->current['version'] ? 'btn-primary' : 'btn-default'; ?>" href="<?php echo escape($v['url']); ?>" title="<?php echo escape($v['instruction']); ?>">v<?php echo (int) $v['version']; ?></a>
+					<?php endforeach; ?>
+				</p>
+
+				<p>
+					<strong>Ширина:</strong>
+					<button type="button" class="btn btn-default btn-sm" data-width="375px">Мобилна</button>
+					<button type="button" class="btn btn-default btn-sm" data-width="768px">Таблет</button>
+					<button type="button" class="btn btn-default btn-sm" data-width="100%">Пълна</button>
+				</p>
+
+				<?php /* sandbox без стойности: без скриптове, формуляри, изскачащи прозорци и достъп до сесията на админа. */ ?>
+				<iframe id="design-preview" sandbox="" srcdoc="<?php echo escape($this->preview); ?>" title="Преглед на макета" style="width:100%;max-width:100%;height:680px;border:1px solid #ddd;background:#fff;display:block;margin:0 auto 1rem"></iframe>
+
+				<h4>Код (версия <?php echo (int) $this->current['version']; ?>)</h4>
+				<textarea id="design-code" class="form-control" rows="14" readonly="readonly" style="font-family:monospace"><?php echo escape($this->current['html']); ?></textarea>
+				<p class="mt-2">
+					<button type="button" class="btn btn-info" id="design-copy">Копирай кода</button>
+					<a class="btn btn-success" href="<?php echo escape($this->layoutUrl); ?>">Направи layout за сайта</a>
+					<span id="design-copied" class="text-success" style="display:none">Копирано.</span>
+				</p>
+
+				<?php /* Един формуляр: CSRF токенът се генерира при всяко показване, затова трябва да е само един. */ ?>
+				<form action="<?php echo escape($this->refineUrl); ?>" method="post" autocomplete="off">
+					<?php echo $this->form->csrf; ?>
+					<input type="hidden" name="id" value="<?php echo (int) $this->id; ?>" />
+					<hr />
+					<h4>Доразвиване</h4>
+					<p class="text-muted">Агентът получава последната версия и описаната промяна и връща нова версия. Старите се запазват.</p>
+					<div class="row mb-3">
+						<div class="col-md-8">
+							<label class="form-label" for="instruction">Какво да се промени</label>
+							<textarea class="form-control" id="instruction" name="instruction" rows="3" maxlength="2000" placeholder="напр. Направи заглавието по-голямо, добави секция с отзиви и смени бутона в акцентния цвят"></textarea>
+						</div>
+						<div class="col-md-4">
+							<label class="form-label" for="agent">Агент</label>
+							<select class="form-control" id="agent" name="agent">
+								<?php foreach ($this->agents as $code => $name) : ?>
+									<option value="<?php echo escape($code); ?>"<?php echo $code === $this->defaultAgent ? ' selected="selected"' : ''; ?>><?php echo escape($name); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</div>
+					</div>
+					<p>
+						<button type="submit" class="btn btn-primary">Нова версия</button>
+						<a class="btn btn-default" href="<?php echo escape($this->homeUrl); ?>">Към списъка</a>
+						<button type="submit" class="btn btn-danger" formaction="<?php echo escape($this->deleteUrl); ?>" formnovalidate="formnovalidate"
+							onclick="return confirm('Макетът с всички версии ще бъде изтрит. Да продължа ли?');">Изтрий макета</button>
+					</p>
+				</form>
+			</div>
+		</div>
+	</div>
+</div>
+<script>
+(function () {
+	var frame = document.getElementById('design-preview');
+	document.querySelectorAll('[data-width]').forEach(function (button) {
+		button.addEventListener('click', function () { frame.style.width = button.getAttribute('data-width'); });
+	});
+
+	document.getElementById('design-copy').addEventListener('click', function () {
+		var code = document.getElementById('design-code');
+		var done = function () { document.getElementById('design-copied').style.display = 'inline'; };
+		if (navigator.clipboard && window.isSecureContext) {
+			navigator.clipboard.writeText(code.value).then(done);
+		} else {
+			code.select();
+			if (document.execCommand('copy')) { done(); }
+		}
+	});
+})();
+</script>
