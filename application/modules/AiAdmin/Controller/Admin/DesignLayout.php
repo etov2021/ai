@@ -20,7 +20,7 @@ class DesignLayout extends BaseController
     {
         // id идва от пътя при отваряне на страницата и от скритото поле при изпращане на формуляра.
         $in = $this->request->isPost() ? $this->post() : $this->request->getQueryParams() + ['id' => $this->request->getParam('id', 0)];
-        $name = trim((string) ($in['name'] ?? 'site'));
+        $name = trim((string) ($in['name'] ?? 'default'));
         $selector = trim((string) ($in['selector'] ?? ''));
 
         $source = $this->source($in);
@@ -87,8 +87,8 @@ class DesignLayout extends BaseController
 
             // Проверка преди първия запис: при отказ не остават наполовина копирани файлове.
             $writer->assertWritable($name, $overwrite);
-            $copied = $result['vendor'] !== [] || $source['files'] !== []
-                ? $writer->copyAssets($name, $source['packageDir'], $source['files'], $result['vendor'], $overwrite)
+            $copied = $result['vendor'] !== [] || $result['files'] !== [] || $source['files'] !== []
+                ? $writer->copyAssets($name, $source['packageDir'], $source['files'], $result['vendor'], $overwrite, $result['files'])
                 : 0;
             $path = $writer->write($name, $result['code'], $overwrite);
         } catch (AiException $e) {

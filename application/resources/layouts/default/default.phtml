@@ -1,0 +1,56 @@
+<?php /* aiimpl-ui-layout: default */ ?>
+<!DOCTYPE html>
+<html lang="bg">
+<head><base href="<?php echo server_url(base_url()) . '/'; ?>" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title><?php echo $this->renderSection('title', (isset($this->metaRoute) && isset($this->metaRoute['title']) ? $this->metaRoute['title'] : '')); ?></title>
+<link rel="stylesheet" href="templates/default/css/layout.css">
+<?php echo $this->renderSection('styles'); ?></head>
+<body class="page-home has-fixed-header">
+ <a class="skip-link" href="#main-content">Към основното съдържание</a>
+ 
+ <header class="site-header">
+  <div class="header-top">
+   <div class="float-left">
+    <button class="btn btn-nav-open" aria-label="Меню">
+     <svg width="20" height="20" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+     <span>Меню</span>
+    </button>
+    <a href="#" class="site-logo">SPORT DEPOT</a>
+   </div>
+   <nav class="float-right">
+    <button class="btn" aria-label="Търсене">
+     <svg width="20" height="20" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+     <span class="d-none d-lg-inline">Търсене</span>
+    </button>
+    <button class="btn btn-primary" aria-label="Количка">
+     <svg width="20" height="20" viewbox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+    </button>
+   </nav>
+  </div>
+  
+  <nav id="site-nav" class="site-nav">
+   <ul class="site-nav-main">
+    <li class="active"><a href="#">Начало</a></li>
+    <li><a href="#">Мъже</a></li>
+    <li><a href="#">Жени</a></li>
+    <li><a href="#">Деца</a></li>
+    <li><a href="#">Обувки</a></li>
+    <li><a href="#">Дрехи</a></li>
+    <li><a href="#">Оборудване</a></li>
+    <li><a href="#">OUTLET</a></li>
+    <li><a href="#">OUTDOOR</a></li>
+   </ul>
+  </nav>
+ </header>
+
+ <main id="main-content"><?php echo $this->renderSection('content'); ?></main>
+
+ <footer class="site-footer">
+  <div class="bf-wrap">
+   <p>&copy; 2026 Всички права запазени. Официален онлайн магазин Sport Depot.</p>
+  </div>
+ </footer>
+<?php echo $this->renderSection('scripts'); ?></body>
+</html>

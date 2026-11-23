@@ -9,6 +9,6 @@ class Index extends Controller
 {
     public function indexAction()
     {
-        return new RedirectResponse(route_reset('admin-login'));
+      //  return new RedirectResponse(route_reset('admin-login'));
     }
 }

@@ -72,6 +72,14 @@ $source = $this->source;
 					<h4>Код (default.phtml)</h4>
 					<textarea class="form-control" rows="18" readonly="readonly" style="font-family:monospace"><?php echo escape($this->result['code']); ?></textarea>
 
+					<?php foreach ($this->result['files'] as $path => $content) : ?>
+						<h5 class="mt-3">public/templates/<?php echo escape($this->name); ?>/<?php echo escape($path); ?> <small class="text-muted">(CSS/JS, изнесени от HTML-а)</small></h5>
+						<textarea class="form-control" rows="9" readonly="readonly" style="font-family:monospace"><?php echo escape($content); ?></textarea>
+					<?php endforeach; ?>
+					<?php if (!empty($this->result['files'])) : ?>
+						<p class="text-muted">Тези файлове се създават при „Запиши в layouts“. При „Свали default.phtml“ ги копирайте оттук.</p>
+					<?php endif; ?>
+
 					<h5 class="mt-3">Ползване във view</h5>
 					<pre class="border rounded p-2 bg-light">$this->extend('shared::layouts/<?php echo escape($this->name); ?>/default')
      ->section('title', 'Заглавие');</pre>
