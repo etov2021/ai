@@ -2,6 +2,7 @@
 
 namespace AiAdmin\Controller\Admin;
 
+use Ai\Design\LayoutMerger;
 use Ai\Design\LayoutWriter;
 use Ai\Exception\AiException;
 use Ai\Security\Redactor;
@@ -40,6 +41,8 @@ class DesignLayout extends BaseController
             'name' => $name,
             'selector' => $selector,
             'overwrite' => !empty($in['overwrite']),
+            'overwriteAssets' => !empty($in['overwriteAssets']),
+            'force' => !empty($in['force']),
             'result' => $result,
             'previewUrl' => $this->url('design-layout', 'index'),
             'downloadUrl' => $this->url('design-layout', 'download'),
@@ -85,19 +88,42 @@ class DesignLayout extends BaseController
             $result = $this->build($source, $name, trim((string) ($in['selector'] ?? '')));
             $writer = $this->ai()->layoutWriter();
 
+            // PHP, добавен ръчно, който не може да се върне на място, не се забравя тихо.
+            $unplaced = $result['merge']['unplaced'] ?? [];
+            if ($unplaced !== [] && empty($in['force'])) {
+                throw new AiException(sprintf(
+                    'В текущия layout има ръчно добавен PHP (%d блока), който не може да се върне на място в новия HTML: %s. Добавете го ръчно след записа или отбележете „Запиши въпреки това“ (старият файл се пази като резервно копие).',
+                    count($unplaced),
+                    implode(' | ', array_slice($unplaced, 0, 3)),
+                ));
+            }
+
             // Проверка преди първия запис: при отказ не остават наполовина копирани файлове.
             $writer->assertWritable($name, $overwrite);
-            $copied = $result['vendor'] !== [] || $result['files'] !== [] || $source['files'] !== []
-                ? $writer->copyAssets($name, $source['packageDir'], $source['files'], $result['vendor'], $overwrite, $result['files'])
-                : 0;
+            $assets = ['copied' => 0, 'skipped' => []];
+            if ($result['vendor'] !== [] || $result['files'] !== [] || $source['files'] !== []) {
+                // CSS и JS файловете се презаписват само по изрично искане: те може да са редактирани ръчно.
+                $assets = $writer->copyAssets($name, $source['packageDir'], $source['files'], $result['vendor'], !empty($in['overwriteAssets']), $result['files']);
+            }
             $path = $writer->write($name, $result['code'], $overwrite);
         } catch (AiException $e) {
             return $this->redirect($this->indexUrl($source), Redactor::redact($e->getMessage()), 'danger');
         }
 
+        $message = sprintf('Записано: application/resources/layouts/%s', $path);
+        if ($assets['copied'] > 0) {
+            $message .= sprintf(' и %d файла в public/templates/%s/', $assets['copied'], $name);
+        }
+        if ($result['merge'] !== null) {
+            $message .= sprintf('. Запазен PHP от стария файл: %d блока; старият файл е в data/design/backups/', $result['merge']['preserved']);
+        }
+        if ($assets['skipped'] !== []) {
+            $message .= sprintf('. Не са презаписани вече съществуващите файлове (%d): отбележете „Презапиши CSS и JS“, за да се обновят', count($assets['skipped']));
+        }
+
         return $this->redirect(
             $this->indexUrl($source, ['name' => $name]),
-            sprintf('Записано: application/resources/layouts/%s%s. Ползване във view: $this->extend(\'shared::layouts/%s/default\').', $path, $copied > 0 ? sprintf(' и %d файла в public/templates/%s/', $copied, $name) : '', $name),
+            $message . sprintf('. Ползване във view: $this->extend(\'shared::layouts/%s/default\').', $name),
         );
     }
 
@@ -150,13 +176,24 @@ class DesignLayout extends BaseController
 
     /**
      * @param array<string, mixed> $source
-     * @return array{code: string, report: list<string>, vendor: array<string, string>}
+     * @return array{code: string, report: list<string>, vendor: array<string, string>, files: array<string, string>, merge: ?array{preserved: int, replaced: int, unplaced: list<string>}}
      */
     private function build(array $source, string $name, string $selector): array
     {
         LayoutWriter::assertName($name);
 
-        return $this->ai()->layoutBuilder()->build($source['html'], $name, $selector, $source['entry'], array_fill_keys($source['files'], true));
+        $result = $this->ai()->layoutBuilder()->build($source['html'], $name, $selector, $source['entry'], array_fill_keys($source['files'], true));
+        $result['merge'] = null;
+
+        // Ако layout-ът вече е създаден от дизайнера, само HTML-ът се обновява, а ръчно добавеният PHP се връща на мястото си.
+        $existing = $this->ai()->layoutWriter()->existingCode($name);
+        if ($existing !== null) {
+            $merge = (new LayoutMerger())->merge($existing, $result['code']);
+            $result['code'] = $merge['code'];
+            $result['merge'] = ['preserved' => $merge['preserved'], 'replaced' => $merge['replaced'], 'unplaced' => $merge['unplaced']];
+        }
+
+        return $result;
     }
 
     /** @param array<string, mixed> $source */

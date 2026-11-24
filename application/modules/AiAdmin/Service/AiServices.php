@@ -3,6 +3,16 @@
 namespace AiAdmin\Service;
 
 use Ai\Agent\AgentService;
+use Ai\Access\AccessPolicy;
+use Ai\Audit\AuditLog;
+use Ai\Automation\AutomationRepository;
+use Ai\Automation\AutomationScheduler;
+use Ai\Job\AgentJobHandler;
+use Ai\Job\ClosureJobHandler;
+use Ai\Job\JobRepository;
+use Ai\Job\JobWorker;
+use Ai\Job\PermanentJobFailure;
+use Ai\Job\WorkflowJobHandler;
 use Ai\Conversation\ConversationService;
 use Ai\Design\DesignRepository;
 use Ai\Design\DesignService;
@@ -10,6 +20,7 @@ use Ai\Design\LayoutBuilder;
 use Ai\Design\LayoutWriter;
 use Ai\Design\PackageImporter;
 use Ai\Design\ReferenceFetcher;
+use Ai\Design\TemplateEditor;
 use Ai\Design\TemplateImporter;
 use Ai\Design\TemplateRepository;
 use Ai\Contract\ExtensionInterface;
@@ -208,7 +219,88 @@ final class AiServices
             new ProviderResolver($this->providers(), $this->registry()),
             $this->logs(),
             new UsageGuard($this->budgets(), $this->usage(), new RateLimiter($this->db())),
+            access: $this->access(),
+            audit: $this->audit(),
+            currentUser: fn (): ?int => $this->auditActor()['id'],
         ));
+    }
+
+    public function audit(): AuditLog
+    {
+        return $this->once('audit', fn () => new AuditLog($this->db(), time(...), $this->auditActor(...), (int) config('ai.audit.retention_days', 365)));
+    }
+
+    public function jobs(): JobRepository
+    {
+        return $this->once('jobs', fn () => new JobRepository($this->db(), time(...), (int) config('ai.jobs.lock_seconds', 900)));
+    }
+
+    /** Обработчици по тип задача; нови типове се добавят тук. */
+    public function jobWorker(): JobWorker
+    {
+        return $this->once('jobWorker', fn () => new JobWorker($this->jobs(), [
+            'agent' => new AgentJobHandler($this->agentService()),
+            'workflow' => new WorkflowJobHandler($this->workflowService()),
+            'embed_documents' => new ClosureJobHandler(function (): string {
+                $indexer = $this->documentIndexer();
+                if ($indexer === null) {
+                    throw new PermanentJobFailure('Търсенето по смисъл не е настроено (ai.knowledge.embeddings.provider).');
+                }
+                $result = $indexer->run(2000);
+
+                return sprintf('Индексирани части: %d, оставащи: %d%s', $result['indexed'], $result['remaining'], $result['error'] !== null ? ', спряно: ' . $result['error'] : '');
+            }),
+            'gmail_poll' => new ClosureJobHandler(function (): string {
+                $result = $this->mailPoller()->run();
+
+                return sprintf('Намерени: %d, нови: %d, анализирани: %d, неуспешни: %d, предложени събития: %d', $result['found'], $result['added'], $result['analyzed'], $result['failed'], $result['proposed']);
+            }),
+        ], time(...), $this->audit()));
+    }
+
+    public function automations(): AutomationRepository
+    {
+        return $this->once('automations', fn () => new AutomationRepository($this->db(), time(...)));
+    }
+
+    public function automationScheduler(): AutomationScheduler
+    {
+        return $this->once('automationScheduler', fn () => new AutomationScheduler($this->automations(), $this->jobs(), time(...), $this->audit()));
+    }
+
+    public function groupRoles(): GroupRoles
+    {
+        return $this->once('groupRoles', fn () => new GroupRoles($this->db()));
+    }
+
+    /** Права по агент и инструмент; групите в ai.access.bypass_groups (алиаси) не се ограничават. */
+    public function access(): AccessPolicy
+    {
+        return $this->once('access', fn () => new AccessPolicy(
+            $this->db(),
+            $this->groupRoles()->rolesOf(...),
+            array_values(array_filter((array) config('ai.access.bypass_groups', []), 'is_string')),
+        ));
+    }
+
+    /** @return array{type: string, id: ?int, name: ?string, ip: ?string} */
+    private function auditActor(): array
+    {
+        // Само REMOTE_ADDR: заглавия като X-Forwarded-For се подправят от клиента.
+        $ip = isset($_SERVER['REMOTE_ADDR']) ? (string) $_SERVER['REMOTE_ADDR'] : null;
+
+        try {
+            $identity = function_exists('identity') ? identity() : null;
+        } catch (\Throwable) {
+            $identity = null;
+        }
+        if ($identity) {
+            return ['type' => 'user', 'id' => (int) $identity->getId(), 'name' => (string) $identity->getUsername(), 'ip' => $ip];
+        }
+
+        return PHP_SAPI === 'cli'
+            ? ['type' => 'cron', 'id' => null, 'name' => basename((string) ($_SERVER['argv'][0] ?? 'cli')), 'ip' => null]
+            : ['type' => 'system', 'id' => null, 'name' => null, 'ip' => $ip];
     }
 
     public function chat(): ConversationService
@@ -346,7 +438,7 @@ final class AiServices
 
     public function mcpTokens(): McpTokenRepository
     {
-        return $this->once('mcpTokens', fn () => new McpTokenRepository($this->db(), time(...)));
+        return $this->once('mcpTokens', fn () => new McpTokenRepository($this->db(), time(...), $this->audit()));
     }
 
     /** Външните клиенти получават само тези четири инструмента и само в рамките на правата на своя токен. */
@@ -367,6 +459,7 @@ final class AiServices
             new RateLimiter($this->db()),
             time(...),
             array_values(array_filter((array) config('ai.mcp_server.allowed_origins', []), 'is_string')),
+            audit: $this->audit(),
         ));
     }
 
@@ -402,6 +495,11 @@ final class AiServices
         return $this->once('templateImporter', fn () => new TemplateImporter($this->templates(), new PackageImporter(), $this->referenceFetcher()));
     }
 
+    public function templateEditor(): TemplateEditor
+    {
+        return $this->once('templateEditor', fn () => new TemplateEditor($this->agentService(), $this->templates(), $this->templateImporter()));
+    }
+
     public function layoutBuilder(): LayoutBuilder
     {
         return $this->once('layoutBuilder', fn () => new LayoutBuilder());
@@ -410,7 +508,7 @@ final class AiServices
     /** Единственият път за запис: application/resources/layouts/<име> и public/templates/<име>. Админът не се пипа. */
     public function layoutWriter(): LayoutWriter
     {
-        return $this->once('layoutWriter', fn () => new LayoutWriter(app_path('resources/layouts'), public_path()));
+        return $this->once('layoutWriter', fn () => new LayoutWriter(app_path('resources/layouts'), public_path(), data_path('design/backups')));
     }
 
     public function fileAnalyzer(): FileAnalyzer

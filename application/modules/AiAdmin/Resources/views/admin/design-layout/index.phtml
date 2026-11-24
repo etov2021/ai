@@ -37,11 +37,25 @@ $source = $this->source;
 							<input class="form-control" type="text" id="selector" name="selector" value="<?php echo escape($this->selector); ?>" maxlength="60" placeholder="main, #content, .page-content" />
 							<small class="text-muted">Празно = автоматично (main, role=main, #main, #content, .page-content).</small>
 						</div>
-						<div class="col-md-3">
+						<div class="col-md-5">
 							<label class="form-label d-block">&nbsp;</label>
-							<label class="checkbox-inline">
-								<input type="checkbox" name="overwrite" value="1"<?php echo $this->overwrite ? ' checked="checked"' : ''; ?> /> Презапиши мой layout
-							</label>
+							<div>
+								<label class="checkbox-inline">
+									<input type="checkbox" name="overwrite" value="1"<?php echo $this->overwrite ? ' checked="checked"' : ''; ?> /> Презапиши мой layout (само HTML-ът; PHP, добавен ръчно, се запазва)
+								</label>
+							</div>
+							<div>
+								<label class="checkbox-inline">
+									<input type="checkbox" name="overwriteAssets" value="1"<?php echo $this->overwriteAssets ? ' checked="checked"' : ''; ?> /> Презапиши и CSS/JS файловете (иначе съществуващите се пазят)
+								</label>
+							</div>
+							<?php if ($this->result !== null && !empty($this->result['merge']['unplaced'])) : ?>
+								<div>
+									<label class="checkbox-inline text-danger">
+										<input type="checkbox" name="force" value="1"<?php echo $this->force ? ' checked="checked"' : ''; ?> /> Запиши въпреки непоставения PHP
+									</label>
+								</div>
+							<?php endif; ?>
 						</div>
 					</div>
 
@@ -56,6 +70,24 @@ $source = $this->source;
 
 				<?php if ($this->result !== null) : ?>
 					<hr />
+					<?php if ($this->result['merge'] !== null) : ?>
+						<div class="alert alert-info">
+							Layout "<?php echo escape($this->name); ?>" вече съществува. Обновява се само HTML-ът: ръчно добавеният PHP се запазва
+							(върнати на място: <?php echo (int) $this->result['merge']['preserved']; ?>, от тях заменили текст: <?php echo (int) $this->result['merge']['replaced']; ?>).
+							При запис старият файл се копира в <code>data/design/backups/</code>.
+						</div>
+						<?php if (!empty($this->result['merge']['unplaced'])) : ?>
+							<div class="alert alert-danger">
+								<strong>PHP блокове, които не могат да се върнат на място (<?php echo count($this->result['merge']['unplaced']); ?>):</strong>
+								<ul class="mb-0">
+									<?php foreach ($this->result['merge']['unplaced'] as $block) : ?>
+										<li><code><?php echo escape($block); ?></code></li>
+									<?php endforeach; ?>
+								</ul>
+								Новият HTML няма същия текст около тях. Запишете с „Запиши въпреки непоставения PHP“ и ги добавете ръчно от резервното копие, или сменете селектора/шаблона.
+							</div>
+						<?php endif; ?>
+					<?php endif; ?>
 					<h4>Доклад</h4>
 					<ul>
 						<?php foreach ($this->result['report'] as $line) : ?>

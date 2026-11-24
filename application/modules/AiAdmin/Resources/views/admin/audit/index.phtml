@@ -1,0 +1,92 @@
+<?php
+
+$label = 'AI - Одит';
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label);
+
+$badge = static fn (string $result): string => match ($result) {
+    'ok' => 'bg-success',
+    'denied' => 'bg-warning text-dark',
+    default => 'bg-danger',
+};
+$filters = $this->filters;
+
+?>
+<div class="row">
+	<div class="col-12">
+		<div class="card">
+			<div class="card-body">
+				<h2 class="mb-4"><i class="fa fa-history fa-fw"></i> <?php echo escape($label); ?></h2>
+				<p>
+					<a class="btn btn-default" href="<?php echo escape($this->homeUrl); ?>">Назад</a>
+					<a class="btn btn-default" href="<?php echo escape($this->exportUrl); ?>">Изтегляне (CSV)</a>
+				</p>
+				<p class="text-muted">
+					Записват се промените от админа, изпълненията на агенти, извикванията през MCP, отказаните достъпи и фоновите задачи.
+					Текстовете на заявките и отговорите и тайните не се записват.
+					<?php echo $this->retentionDays > 0 ? 'Записите се пазят ' . (int) $this->retentionDays . ' дни.' : 'Записите не се изтриват автоматично.'; ?>
+				</p>
+
+				<form class="row g-2 mb-3" action="<?php echo escape($this->filterUrl); ?>" method="get">
+					<div class="col-md-2">
+						<label class="form-label">Действие (начало)</label>
+						<input class="form-control" type="text" name="action" maxlength="60" placeholder="agent. / admin. / mcp." value="<?php echo escape($filters['action']); ?>">
+					</div>
+					<div class="col-md-2">
+						<label class="form-label">Резултат</label>
+						<select class="form-control" name="result">
+							<?php foreach (['' => 'всички', 'ok' => 'успех', 'error' => 'грешка', 'denied' => 'отказ'] as $value => $text) : ?>
+								<option value="<?php echo escape($value); ?>"<?php echo $filters['result'] === $value ? ' selected' : ''; ?>><?php echo escape($text); ?></option>
+							<?php endforeach; ?>
+						</select>
+					</div>
+					<div class="col-md-2">
+						<label class="form-label">Потребител</label>
+						<input class="form-control" type="text" name="actor" maxlength="100" value="<?php echo escape($filters['actor']); ?>">
+					</div>
+					<div class="col-md-2">
+						<label class="form-label">От</label>
+						<input class="form-control" type="date" name="from" value="<?php echo escape($filters['from']); ?>">
+					</div>
+					<div class="col-md-2">
+						<label class="form-label">До</label>
+						<input class="form-control" type="date" name="to" value="<?php echo escape($filters['to']); ?>">
+					</div>
+					<div class="col-md-2 d-flex align-items-end">
+						<button class="btn btn-primary" type="submit">Филтриране</button>
+					</div>
+				</form>
+
+				<p>Намерени: <strong><?php echo (int) $this->total; ?></strong>. Страница <?php echo (int) $this->page; ?> от <?php echo (int) $this->pages; ?>.</p>
+				<div class="table-responsive">
+					<table class="table table-sm table-striped">
+						<thead>
+							<tr><th>Време</th><th>Деец</th><th>IP</th><th>Действие</th><th>Обект</th><th>Резултат</th><th>Подробности</th></tr>
+						</thead>
+						<tbody>
+						<?php foreach ($this->rows as $row) : ?>
+							<tr>
+								<td class="text-nowrap"><?php echo escape($row['created']); ?></td>
+								<td><?php echo escape($row['actorType'] . ($row['actorName'] !== null && $row['actorName'] !== '' ? ': ' . $row['actorName'] : '')); ?></td>
+								<td><?php echo escape($row['ip'] ?? ''); ?></td>
+								<td><?php echo escape($row['action']); ?></td>
+								<td><?php echo escape(trim(($row['entityType'] ?? '') . ' ' . ($row['entityId'] ?? ''))); ?></td>
+								<td><span class="badge <?php echo $badge((string) $row['result']); ?>"><?php echo escape($row['result']); ?></span></td>
+								<td><small class="text-muted"><?php echo escape($row['details'] ?? ''); ?></small></td>
+							</tr>
+						<?php endforeach; ?>
+						<?php if (empty($this->rows)) : ?>
+							<tr><td colspan="7" class="text-muted">Няма записи.</td></tr>
+						<?php endif; ?>
+						</tbody>
+					</table>
+				</div>
+				<p>
+					<?php if ($this->prevUrl !== null) : ?><a class="btn btn-default" href="<?php echo escape($this->prevUrl); ?>">&laquo; По-нови</a><?php endif; ?>
+					<?php if ($this->nextUrl !== null) : ?><a class="btn btn-default" href="<?php echo escape($this->nextUrl); ?>">По-стари &raquo;</a><?php endif; ?>
+				</p>
+			</div>
+		</div>
+	</div>
+</div>

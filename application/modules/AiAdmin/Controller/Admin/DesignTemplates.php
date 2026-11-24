@@ -104,8 +104,51 @@ class DesignTemplates extends BaseController
             'newDesignUrl' => $this->url('design', 'index', null, ['template' => $id]),
             'layoutUrl' => $template['html'] === null ? null : $this->url('design-layout', 'index', (string) $id, ['source' => 'template']),
             'deleteUrl' => $this->url('design-templates', 'delete'),
+            'editUrl' => $this->url('design-templates', 'edit'),
+            'undoUrl' => $this->url('design-templates', 'undo'),
+            'agents' => $this->agentOptions(),
+            'defaultAgent' => (string) config('ai.design.agent', ''),
             'homeUrl' => $this->url('design-templates'),
         ];
+    }
+
+    /** Промяна на HTML-а на шаблона по указание: агентът връща точни замени, кодът ги прилага и презаписва шаблона. */
+    public function editAction()
+    {
+        $post = $this->post();
+        $id = ctype_digit((string) ($post['id'] ?? '')) ? (int) $post['id'] : 0;
+        if (!$this->request->isPost() || !(new Form($this->formPath('knowledge')))->isValid($post) || $id < 1) {
+            return $this->redirect($this->url('design-templates'));
+        }
+
+        @set_time_limit(300);
+
+        try {
+            $result = $this->ai()->templateEditor()->edit($id, (string) ($post['instruction'] ?? ''), $this->agentCode($post), $this->userId());
+        } catch (AiException $e) {
+            return $this->redirect($this->url('design-templates', 'view', (string) $id), Redactor::redact($e->getMessage()), 'danger');
+        } catch (\Throwable) {
+            return $this->redirect($this->url('design-templates', 'view', (string) $id), 'Промяната не може да се запише. Изпълнена ли е миграция 017?', 'danger');
+        }
+
+        return $this->redirect($this->url('design-templates', 'view', (string) $id), sprintf('Приложени замени: %d. Ако резултатът не е както трябва, натиснете „Върни предишното“.', $result['applied']));
+    }
+
+    public function undoAction()
+    {
+        $post = $this->post();
+        $id = ctype_digit((string) ($post['id'] ?? '')) ? (int) $post['id'] : 0;
+        if (!$this->request->isPost() || !(new Form($this->formPath('knowledge')))->isValid($post) || $id < 1) {
+            return $this->redirect($this->url('design-templates'));
+        }
+
+        try {
+            $this->ai()->templateEditor()->undo($id);
+        } catch (AiException $e) {
+            return $this->redirect($this->url('design-templates', 'view', (string) $id), Redactor::redact($e->getMessage()), 'danger');
+        }
+
+        return $this->redirect($this->url('design-templates', 'view', (string) $id), 'Върнат е предишният HTML. Ново натискане го връща обратно.');
     }
 
     public function deleteAction()

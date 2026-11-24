@@ -1,0 +1,138 @@
+<?php
+
+$label = 'AI - Автоматизации';
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label);
+
+$e = $this->edit;
+$days = [1 => 'пн', 2 => 'вт', 3 => 'ср', 4 => 'чт', 5 => 'пт', 6 => 'сб', 7 => 'нд'];
+$selectedDays = array_map('strval', (array) ($e['weekdays'] ?? []));
+
+?>
+<div class="row">
+	<div class="col-12">
+		<div class="card">
+			<div class="card-body">
+				<h2 class="mb-4"><i class="fa fa-clock-o fa-fw"></i> <?php echo escape($label); ?></h2>
+				<p>
+					<a class="btn btn-default" href="<?php echo escape($this->homeUrl); ?>">Назад</a>
+					<a class="btn btn-default" href="<?php echo escape($this->jobsUrl); ?>">Задачи</a>
+				</p>
+
+				<?php if (!$this->ready) : ?>
+					<div class="alert alert-warning">Таблиците липсват. Изпълнете миграция <code>019_jobs_automations.sql</code>.</div>
+				<?php else : ?>
+				<p class="text-muted">
+					Автоматизацията пуска избран агент или работен поток с даден вход по разписание (времето е по часовника на сървъра).
+					Тя само добавя задача в опашката; изпълнява я работникът <code>cronjobs/jobs-run.php</code>, затова той трябва да е в cron на всяка минута.
+					Резултатът се вижда в „Задачи“. Ако предишното изпълнение още не е приключило, новото се пропуска; пропуснатите при спрял сървър не се наваксват.
+					Изпълнява се като системно (без потребител), затова ограниченията по групи от „Права“ не се прилагат за него.
+				</p>
+
+				<?php /* Един формуляр: CSRF токенът се генерира при всяко показване, затова трябва да е само един. */ ?>
+				<form action="<?php echo route(); ?>" method="post" autocomplete="off">
+					<?php echo $this->form->csrf; ?>
+
+					<div class="table-responsive">
+						<table class="table table-sm table-striped">
+							<thead>
+								<tr><th>Име</th><th>Какво</th><th>Разписание</th><th>Следващо</th><th>Последно</th><th>Активна</th><th></th></tr>
+							</thead>
+							<tbody>
+							<?php foreach ($this->rows as $r) : ?>
+								<tr>
+									<td><a href="<?php echo escape($r['editUrl']); ?>"><?php echo escape($r['name']); ?></a></td>
+									<td><?php echo escape(($r['kind'] === 'agent' ? 'агент ' : 'поток ') . $r['target']); ?></td>
+									<td><?php echo escape($r['schedule']); ?></td>
+									<td class="text-nowrap"><?php echo escape($r['nextRun'] ?? '-'); ?></td>
+									<td class="text-nowrap"><?php echo escape($r['lastRun'] ?? '-'); ?></td>
+									<td><?php echo $r['active'] ? 'да' : 'не'; ?></td>
+									<td class="text-nowrap">
+										<button type="submit" class="btn btn-default btn-sm" name="id" value="<?php echo (int) $r['id']; ?>" formaction="<?php echo escape($this->runUrl); ?>" formnovalidate="formnovalidate">Пусни сега</button>
+										<button type="submit" class="btn btn-default btn-sm" name="id" value="<?php echo (int) $r['id']; ?>" formaction="<?php echo escape($this->toggleUrl); ?>" formnovalidate="formnovalidate"><?php echo $r['active'] ? 'Спри' : 'Включи'; ?></button>
+										<button type="submit" class="btn btn-danger btn-sm" name="id" value="<?php echo (int) $r['id']; ?>" formaction="<?php echo escape($this->deleteUrl); ?>" formnovalidate="formnovalidate"
+											onclick="return confirm('Автоматизацията ще се изтрие. Да се изтрие ли?');">Изтрий</button>
+									</td>
+								</tr>
+							<?php endforeach; ?>
+							<?php if (empty($this->rows)) : ?>
+								<tr><td colspan="7" class="text-muted">Няма автоматизации.</td></tr>
+							<?php endif; ?>
+							</tbody>
+						</table>
+					</div>
+
+					<h4 class="mt-4"><?php echo $e['automationId'] !== '' ? 'Редакция' : 'Нова автоматизация'; ?>
+						<?php if ($e['automationId'] !== '') : ?><a class="btn btn-default btn-sm" href="<?php echo escape($this->newUrl); ?>">Нова</a><?php endif; ?></h4>
+					<input type="hidden" name="automationId" value="<?php echo escape($e['automationId']); ?>">
+
+					<div class="row g-2 mb-3">
+						<div class="col-md-4">
+							<label class="form-label">Име</label>
+							<input class="form-control" type="text" name="name" maxlength="100" value="<?php echo escape($e['name']); ?>">
+						</div>
+						<div class="col-md-2">
+							<label class="form-label">Вид</label>
+							<select class="form-control" name="kind">
+								<option value="agent"<?php echo $e['kind'] === 'agent' ? ' selected' : ''; ?>>Агент</option>
+								<option value="workflow"<?php echo $e['kind'] === 'workflow' ? ' selected' : ''; ?>>Работен поток</option>
+							</select>
+						</div>
+						<div class="col-md-3">
+							<label class="form-label">Агент</label>
+							<select class="form-control" name="agent">
+								<option value="">-</option>
+								<?php foreach ($this->agents as $code => $text) : ?>
+									<option value="<?php echo escape($code); ?>"<?php echo ($e['agent'] ?? '') === $code ? ' selected' : ''; ?>><?php echo escape($text); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</div>
+						<div class="col-md-3">
+							<label class="form-label">Работен поток</label>
+							<select class="form-control" name="workflow">
+								<option value="">-</option>
+								<?php foreach ($this->workflows as $code => $text) : ?>
+									<option value="<?php echo escape($code); ?>"<?php echo ($e['workflow'] ?? '') === $code ? ' selected' : ''; ?>><?php echo escape($text); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</div>
+					</div>
+					<div class="mb-3">
+						<label class="form-label">Вход (какво да получи агентът или потокът; до 5000 знака)</label>
+						<textarea class="form-control" name="input" rows="4" maxlength="5000"><?php echo escape($e['input']); ?></textarea>
+					</div>
+					<div class="row g-2 mb-3">
+						<div class="col-md-3">
+							<label class="form-label">Разписание</label>
+							<select class="form-control" name="scheduleType">
+								<option value="every"<?php echo $e['scheduleType'] === 'every' ? ' selected' : ''; ?>>На всеки N минути</option>
+								<option value="daily"<?php echo $e['scheduleType'] === 'daily' ? ' selected' : ''; ?>>Всеки ден в час</option>
+								<option value="weekly"<?php echo $e['scheduleType'] === 'weekly' ? ' selected' : ''; ?>>В избрани дни в час</option>
+							</select>
+						</div>
+						<div class="col-md-2">
+							<label class="form-label">Интервал (мин, поне 5)</label>
+							<input class="form-control" type="number" name="intervalMinutes" min="5" max="10080" value="<?php echo escape($e['intervalMinutes']); ?>">
+						</div>
+						<div class="col-md-2">
+							<label class="form-label">Час (ЧЧ:ММ)</label>
+							<input class="form-control" type="text" name="scheduleTime" maxlength="5" placeholder="08:00" value="<?php echo escape($e['scheduleTime']); ?>">
+						</div>
+						<div class="col-md-5">
+							<label class="form-label d-block">Дни (за „избрани дни“)</label>
+							<?php foreach ($days as $n => $text) : ?>
+								<label class="me-2"><input type="checkbox" name="weekdays[]" value="<?php echo $n; ?>"<?php echo in_array((string) $n, $selectedDays, true) ? ' checked' : ''; ?>> <?php echo escape($text); ?></label>
+							<?php endforeach; ?>
+						</div>
+					</div>
+					<div class="mb-3">
+						<label><input type="checkbox" name="active" value="1"<?php echo !empty($e['active']) ? ' checked' : ''; ?>> Активна</label>
+					</div>
+					<button class="btn btn-primary" type="submit" formaction="<?php echo escape($this->saveUrl); ?>">Запис</button>
+				</form>
+				<?php endif; ?>
+			</div>
+		</div>
+	</div>
+</div>

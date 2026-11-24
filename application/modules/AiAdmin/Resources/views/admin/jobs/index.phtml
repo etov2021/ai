@@ -1,0 +1,124 @@
+<?php
+
+$label = 'AI - Задачи';
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label);
+
+$badge = static fn (string $status): string => match ($status) {
+    'done' => 'bg-success',
+    'failed' => 'bg-danger',
+    'running' => 'bg-primary',
+    'cancelled' => 'bg-secondary',
+    default => 'bg-warning text-dark',
+};
+$names = ['pending' => 'чакащи', 'running' => 'работещи', 'done' => 'готови', 'failed' => 'неуспешни', 'cancelled' => 'отказани'];
+
+?>
+<div class="row">
+	<div class="col-12">
+		<div class="card">
+			<div class="card-body">
+				<h2 class="mb-4"><i class="fa fa-tasks fa-fw"></i> <?php echo escape($label); ?></h2>
+				<p><a class="btn btn-default" href="<?php echo escape($this->homeUrl); ?>">Назад</a></p>
+
+				<?php if (!$this->ready) : ?>
+					<div class="alert alert-warning">Таблицата със задачи липсва. Изпълнете миграция <code>019_jobs_automations.sql</code>.</div>
+				<?php else : ?>
+				<p class="text-muted">
+					Задачите се изпълняват от работника <code>cronjobs/jobs-run.php</code> (пуска се от cron на всяка минута).
+					При грешка се опитва пак с нарастващо закъснение, най-много 3 пъти. Приключилите се пазят
+					<?php echo (int) config('ai.jobs.retention_days', 30); ?> дни.
+				</p>
+
+				<p>
+					<a class="btn btn-sm <?php echo $this->status === '' ? 'btn-primary' : 'btn-default'; ?>" href="<?php echo escape($this->statusUrls['']); ?>">Всички</a>
+					<?php foreach ($names as $status => $text) : ?>
+						<a class="btn btn-sm <?php echo $this->status === $status ? 'btn-primary' : 'btn-default'; ?>" href="<?php echo escape($this->statusUrls[$status]); ?>"><?php echo escape($text); ?>: <?php echo (int) ($this->counts[$status] ?? 0); ?></a>
+					<?php endforeach; ?>
+				</p>
+
+				<?php /* Един формуляр: CSRF токенът се генерира при всяко показване, затова трябва да е само един. */ ?>
+				<form action="<?php echo route(); ?>" method="post" autocomplete="off">
+					<?php echo $this->form->csrf; ?>
+
+					<h4 class="mt-3">Нова задача</h4>
+					<div class="row g-2 mb-3">
+						<div class="col-md-3">
+							<label class="form-label">Тип</label>
+							<select class="form-control" name="type">
+								<?php foreach ($this->types as $value => $text) : ?>
+									<option value="<?php echo escape($value); ?>"><?php echo escape($text); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</div>
+						<div class="col-md-3">
+							<label class="form-label">Агент (за тип „Агент“)</label>
+							<select class="form-control" name="agent">
+								<option value="">-</option>
+								<?php foreach ($this->agents as $code => $text) : ?>
+									<option value="<?php echo escape($code); ?>"><?php echo escape($text); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</div>
+						<div class="col-md-3">
+							<label class="form-label">Работен поток (за тип „Работен поток“)</label>
+							<select class="form-control" name="workflow">
+								<option value="">-</option>
+								<?php foreach ($this->workflows as $code => $text) : ?>
+									<option value="<?php echo escape($code); ?>"><?php echo escape($text); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</div>
+					</div>
+					<div class="mb-3">
+						<label class="form-label">Вход (за агент и работен поток)</label>
+						<textarea class="form-control" name="input" rows="3" maxlength="5000"></textarea>
+					</div>
+					<button class="btn btn-primary" type="submit" formaction="<?php echo escape($this->enqueueUrl); ?>" formnovalidate="formnovalidate">Добави в опашката</button>
+
+					<h4 class="mt-4">Последни 100</h4>
+					<div class="table-responsive">
+						<table class="table table-sm table-striped">
+							<thead>
+								<tr><th>№</th><th>Тип</th><th>Състояние</th><th>Опити</th><th>Създадена</th><th>Приключила</th><th>Резултат / грешка</th><th></th></tr>
+							</thead>
+							<tbody>
+							<?php foreach ($this->rows as $r) : ?>
+								<tr>
+									<td><?php echo (int) $r['id']; ?></td>
+									<td><?php echo escape($r['type'] . ($r['target'] !== '' ? ': ' . $r['target'] : '')); ?><?php echo $r['automationId'] !== null ? ' <small class="text-muted">(автоматизация ' . (int) $r['automationId'] . ')</small>' : ''; ?></td>
+									<td><span class="badge <?php echo $badge((string) $r['status']); ?>"><?php echo escape($names[$r['status']] ?? $r['status']); ?></span>
+										<?php echo $r['status'] === 'pending' && $r['attempts'] > 0 ? '<small class="text-muted">пак след ' . escape($r['runAfter']) . '</small>' : ''; ?></td>
+									<td><?php echo (int) $r['attempts']; ?>/<?php echo (int) $r['maxAttempts']; ?></td>
+									<td class="text-nowrap"><?php echo escape($r['created']); ?></td>
+									<td class="text-nowrap"><?php echo escape($r['finished'] ?? ''); ?></td>
+									<td>
+										<?php if ($r['error'] !== null && $r['error'] !== '') : ?>
+											<div class="text-danger"><small><?php echo escape($r['error']); ?></small></div>
+										<?php endif; ?>
+										<?php if ($r['result'] !== null && $r['result'] !== '') : ?>
+											<details><summary><small><?php echo escape(mb_substr(preg_replace('/\s+/u', ' ', (string) $r['result']), 0, 80)); ?></small></summary><pre class="small mb-0" style="white-space: pre-wrap;"><?php echo escape($r['result']); ?></pre></details>
+										<?php endif; ?>
+									</td>
+									<td class="text-nowrap">
+										<?php if ($r['status'] === 'pending') : ?>
+											<button type="submit" class="btn btn-default btn-sm" name="id" value="<?php echo (int) $r['id']; ?>" formaction="<?php echo escape($this->cancelUrl); ?>" formnovalidate="formnovalidate">Откажи</button>
+										<?php elseif (in_array($r['status'], ['failed', 'cancelled'], true)) : ?>
+											<button type="submit" class="btn btn-default btn-sm" name="id" value="<?php echo (int) $r['id']; ?>" formaction="<?php echo escape($this->retryUrl); ?>" formnovalidate="formnovalidate">Повтори</button>
+										<?php endif; ?>
+									</td>
+								</tr>
+							<?php endforeach; ?>
+							<?php if (empty($this->rows)) : ?>
+								<tr><td colspan="8" class="text-muted">Няма задачи.</td></tr>
+							<?php endif; ?>
+							</tbody>
+						</table>
+					</div>
+				</form>
+				<?php endif; ?>
+			</div>
+		</div>
+	</div>
+</div>

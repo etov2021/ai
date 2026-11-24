@@ -20,9 +20,10 @@ class Chat extends BaseController
 
     public function indexAction()
     {
-        $agents = $this->safely(fn () => array_values(array_filter($this->ai()->agents()->all(), fn ($a) => $a->runnable)));
-        $conversationId = (int) $this->request->getParam('conversation', 0);
         $userId = $this->userId();
+        // Агентите, които потребителят няма право да ползва, не се показват.
+        $agents = $this->safely(fn () => array_values(array_filter($this->ai()->agents()->all(), fn ($a) => $a->runnable && $this->ai()->access()->canRunAgent($a->code, $userId))));
+        $conversationId = (int) $this->request->getParam('conversation', 0);
 
         $conversation = null;
         $agent = null;

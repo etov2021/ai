@@ -1,0 +1,66 @@
+<?php
+
+$label = 'AI - Права';
+
+$this->extend('shared::layouts/admin/default')
+     ->section('title', $label);
+
+?>
+<div class="row">
+	<div class="col-12">
+		<div class="card">
+			<div class="card-body">
+				<h2 class="mb-4"><i class="fa fa-lock fa-fw"></i> <?php echo escape($label); ?></h2>
+				<p><a class="btn btn-default" href="<?php echo escape($this->homeUrl); ?>">Назад</a></p>
+				<p class="text-muted">
+					Ред без отметки е достъпен за всички. Щом е отбелязана поне една група, редът е само за нея (и за подгрупите ѝ).
+					Групата се разпознава по алиаса си; група без алиас се води като <code>group-&lt;id&gt;</code>.
+					Не се ограничават: фоновите задачи, MCP токените (имат собствени правила) и групите
+					<?php echo $this->bypass === [] ? '(не са зададени в <code>ai.access.bypass_groups</code>)' : '<code>' . escape(implode(', ', $this->bypass)) . '</code>'; ?>.
+					Агент, достъпен през друг агент като инструмент, пази ограничението на потребителя, който го е стартирал.
+				</p>
+
+				<?php if (empty($this->roles)) : ?>
+					<p class="text-danger">Няма активни групи потребители.</p>
+				<?php endif; ?>
+
+				<form action="<?php echo route(); ?>" method="post" autocomplete="off">
+					<?php echo $this->form->csrf; ?>
+					<?php foreach ($this->sections as $type => $section) : ?>
+						<h4 class="mt-4"><?php echo escape($section['title']); ?></h4>
+						<div class="table-responsive">
+							<table class="table table-sm table-striped">
+								<thead>
+									<tr>
+										<th>Обект</th>
+										<?php foreach ($this->roles as $role => $name) : ?>
+											<th class="text-center" title="<?php echo escape($role); ?>"><?php echo escape($name); ?></th>
+										<?php endforeach; ?>
+										<th>Достъп</th>
+									</tr>
+								</thead>
+								<tbody>
+								<?php foreach ($section['rows'] as $row) : ?>
+									<tr>
+										<td><?php echo escape($row['name']); ?> <small class="text-muted"><?php echo escape($row['code']); ?></small></td>
+										<?php foreach ($this->roles as $role => $name) : ?>
+											<td class="text-center">
+												<input type="checkbox" name="rules[<?php echo escape($type); ?>][<?php echo escape($row['code']); ?>][]" value="<?php echo escape($role); ?>"<?php echo in_array($role, $row['roles'], true) ? ' checked' : ''; ?>>
+											</td>
+										<?php endforeach; ?>
+										<td><?php echo $row['roles'] === [] ? '<span class="text-muted">всички</span>' : 'само избраните'; ?></td>
+									</tr>
+								<?php endforeach; ?>
+								<?php if (empty($section['rows'])) : ?>
+									<tr><td colspan="<?php echo count($this->roles) + 2; ?>" class="text-muted">Няма записи.</td></tr>
+								<?php endif; ?>
+								</tbody>
+							</table>
+						</div>
+					<?php endforeach; ?>
+					<button class="btn btn-primary" type="submit">Запис</button>
+				</form>
+			</div>
+		</div>
+	</div>
+</div>

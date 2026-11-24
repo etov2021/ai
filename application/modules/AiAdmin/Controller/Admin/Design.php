@@ -138,30 +138,6 @@ class Design extends BaseController
         );
     }
 
-    /** @return array<string, string> код => име на агентите, които могат да се изпълняват */
-    private function agentOptions(): array
-    {
-        $options = [];
-        foreach ($this->safely(fn () => $this->ai()->agents()->all()) as $agent) {
-            if ($agent->runnable) {
-                $options[$agent->code] = $agent->name . ' (' . $agent->providerCode . ' / ' . $agent->model . ')';
-            }
-        }
-
-        return $options;
-    }
-
-    /** @param array<string, mixed> $post */
-    private function agentCode(array $post): string
-    {
-        $code = (string) ($post['agent'] ?? '');
-        if (!array_key_exists($code, $this->agentOptions())) {
-            throw new AiException('Изберете агент.');
-        }
-
-        return $code;
-    }
-
     /** Таблицата може да липсва (миграция 015): страницата да се покаже с подсказка, а не да се чупи. */
     private function tableRead(\Closure $read): array|false
     {
