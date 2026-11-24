@@ -12,7 +12,8 @@ try {
 
     echo Bench::start($name);
 
-    $indexer = AiAdmin\Service\AiServices::get()->documentIndexer();
+    $services = AiAdmin\Service\AiServices::get();
+    $indexer = $services->documentIndexer();
 
     if ($indexer === null) {
         echo 'Търсенето по смисъл не е настроено (config ai.knowledge.embeddings.provider).' . NL;
@@ -20,6 +21,11 @@ try {
         $result = $indexer->run(2000);
 
         echo sprintf('Индексирани части: %d, оставащи: %d%s', $result['indexed'], $result['remaining'], $result['error'] !== null ? ', спряно: ' . $result['error'] : '') . NL;
+
+        // В одита само пусканията с работа или проблем.
+        if ($result['indexed'] > 0 || $result['error'] !== null) {
+            $services->audit()->record('cron.embed_documents', 'cron', $name, $result, $result['error'] !== null ? 'error' : 'ok');
+        }
     }
 
     echo Bench::stop();

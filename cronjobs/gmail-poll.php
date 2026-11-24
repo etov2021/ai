@@ -30,6 +30,11 @@ try {
         $result['stopped'] !== null ? ', спряно: ' . $result['stopped'] : ''
     ) . NL;
 
+    // В одита само пусканията с работа или проблем: иначе на всеки 10 минути се трупа празен запис.
+    if ($result['found'] > 0 || $result['failed'] > 0 || $result['stopped'] !== null) {
+        $services->audit()->record('cron.gmail_poll', 'cron', $name, $result, $result['failed'] > 0 || $result['stopped'] !== null ? 'error' : 'ok');
+    }
+
     echo Bench::stop();
 
 } catch (\Throwable $e) {
