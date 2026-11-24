@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Ai\Agent;
 
+use Ai\Access\AccessPolicy;
+use Ai\Audit\AuditLog;
+use Ai\Exception\AccessDeniedException;
 use Ai\Exception\AiException;
 use Ai\Exception\LimitException;
 use Ai\Limits\UsageGuard;
@@ -32,8 +35,15 @@ final class AgentService
         private ?UsageGuard $guard = null,
         // Ограничава цената на една заявка още преди да стигне до модела.
         private int $maxInputChars = 20000,
+        private ?AccessPolicy $access = null,
+        private ?AuditLog $audit = null,
+        /** @var (\Closure(): ?int)|null потребителят на текущата заявка, когато изпълнението е без изричен потребител */
+        private ?\Closure $currentUser = null,
     ) {
     }
+
+    /** Потребителят на изпълнението в момента; нужен на вложените изпълнения (агент като инструмент). */
+    private ?int $contextUser = null;
 
     /**
      * @param list<Message> $history предишни съобщения от разговора, без новото
@@ -52,6 +62,42 @@ final class AgentService
             throw new AiException(sprintf('Съобщението е прекалено дълго (максимум %d знака).', $this->maxInputChars));
         }
 
+        // Правата се проверяват за потребителя на заявката: изричния, на външното изпълнение (агент като инструмент, за да не се
+        // заобиколи ограничен агент през друг) или влезлия в админа. Логовете и бюджетите си остават по $userId.
+        $actor = $userId ?? $this->contextUser ?? ($this->currentUser !== null ? ($this->currentUser)() : null);
+
+        if ($this->access !== null && !$this->access->canRunAgent($agent->code, $actor)) {
+            $this->audit?->record('access.denied', 'agent', $agent->code, ['userId' => $actor], 'denied');
+            throw new AccessDeniedException('Нямате право да ползвате този агент.');
+        }
+
+        $previousUser = $this->contextUser;
+        $this->contextUser = $actor;
+        try {
+            $result = $this->execute($agent, $userInput, $history, $conversationId, $userId);
+        } catch (\Throwable $e) {
+            $this->audit?->record('agent.run', 'agent', $agent->code, ['userId' => $actor, 'error' => $e->getMessage()], $e instanceof LimitException ? 'denied' : 'error');
+            throw $e;
+        } finally {
+            $this->contextUser = $previousUser;
+        }
+
+        // Текстът на заявката и на отговора не се записва в одита; той е в логовете на агентите, с отделни права и срок.
+        $this->audit?->record('agent.run', 'agent', $agent->code, [
+            'userId' => $actor,
+            'status' => $result->status->value,
+            'inputTokens' => $result->usage->inputTokens,
+            'outputTokens' => $result->usage->outputTokens,
+            'cost' => round($result->cost, 6),
+            'durationMs' => $result->durationMs,
+        ], $result->status === RunStatus::Completed ? 'ok' : 'error');
+
+        return $result;
+    }
+
+    /** @param list<Message> $history */
+    private function execute(Agent $agent, string $userInput, array $history, ?int $conversationId, ?int $userId): RunResult
+    {
         $logger = $this->log !== null ? new RunLogger($this->log, $agent, $conversationId, $userId) : null;
 
         if ($this->guard !== null) {
@@ -108,7 +154,14 @@ final class AgentService
             beforeStep: $this->guard?->stepGuard($agent, $userId),
         );
 
-        $result = $runner->run($agent, $this->registry->resolve($this->tools->forAgent($agent->id), $agent), $messages);
+        // Инструментите, които потребителят няма право да ползва, не стигат до модела: той не знае, че ги има.
+        $records = $this->tools->forAgent($agent->id);
+        if ($this->access !== null) {
+            $actor = $this->contextUser;
+            $records = array_values(array_filter($records, fn ($tool): bool => $this->access->canUseTool($tool->code, $actor)));
+        }
+
+        $result = $runner->run($agent, $this->registry->resolve($records, $agent), $messages);
 
         return $result->withCost(CostCalculator::cost($result->usage, $agent->inputPricePerMillion, $agent->outputPricePerMillion));
     }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ai\McpServer;
 
+use Ai\Audit\AuditLog;
 use Ai\Exception\AiException;
 use Ai\Storage\DatabaseInterface;
 use Ai\Storage\Sql;
@@ -14,7 +15,7 @@ final class McpTokenRepository
     public const TOOLS = ['docs_search', 'docs_list', 'docs_read', 'ask_agent'];
     private const PREFIX = 'aimcp_';
 
-    public function __construct(private DatabaseInterface $db, private \Closure $clock)
+    public function __construct(private DatabaseInterface $db, private \Closure $clock, private ?AuditLog $auditLog = null)
     {
     }
 
@@ -119,6 +120,9 @@ final class McpTokenRepository
             'INSERT INTO `AiMcpCalls` (`tokenId`, `tool`, `status`, `durationMs`, `responseChars`, `created`) VALUES (?, ?, ?, ?, ?, ?)',
             [$tokenId, substr($tool, 0, 40), substr($status, 0, 20), max(0, $durationMs), max(0, $responseChars), $this->now()],
         );
+
+        // Общият одит: кой токен е извикал кой инструмент (самото съдържание не се записва).
+        $this->auditLog?->record('mcp.call', 'mcp_tool', $tool, ['tokenId' => $tokenId, 'durationMs' => $durationMs, 'responseChars' => $responseChars], $status === 'ok' ? 'ok' : ($status === 'denied' ? 'denied' : 'error'));
     }
 
     /** @return list<array<string, mixed>> */

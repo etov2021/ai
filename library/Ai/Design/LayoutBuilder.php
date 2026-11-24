@@ -33,6 +33,12 @@ final class LayoutBuilder
         "//*[contains(concat(' ', normalize-space(@class), ' '), ' main-content ')]",
     ];
 
+    /** @return list<string> фиксираните откъси с PHP, които дизайнерът поставя във всеки layout */
+    public static function snippets(): array
+    {
+        return self::SNIPPETS;
+    }
+
     /**
      * @param string $entry пътят на документа в пакета ('' за макет без пакет)
      * @param array<string, true> $packageFiles файловете на пакета по относителен път

@@ -66,6 +66,25 @@ final class TemplateImporter
         return $id;
     }
 
+    /** Преизчислява описанието за агента след промяна на HTML-а на шаблона. */
+    public function refreshSummary(int $id): void
+    {
+        $template = $this->templates->find($id);
+        if ($template === null || $template['html'] === null) {
+            return;
+        }
+
+        $directory = $template['entry'] !== null && str_contains($template['entry'], '/') ? dirname($template['entry']) : '';
+        $stylesheet = $template['hasPackage'] ? function (string $href) use ($id, $directory): ?string {
+            $local = TemplatePreview::localPath($directory, $href);
+            $css = $local === null ? null : $this->templates->read($id, $local);
+
+            return $css === null ? null : ReferenceFetcher::utf8($css);
+        } : null;
+
+        $this->templates->setSummary($id, $this->fetcher->summarizeHtml($template['html'], $stylesheet));
+    }
+
     /** @throws AiException */
     public function fromUrl(string $name, string $tags, string $url, ?int $userId): int
     {

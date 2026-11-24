@@ -21,7 +21,7 @@ final class TemplateRepository
         return $this->db->fetchAll('SELECT `id`, `name`, `tags`, `source`, `sourceUrl`, `hasPackage`, `created` FROM `AiUiTemplates` ORDER BY `id` DESC LIMIT 300');
     }
 
-    /** @return ?array{id: int, name: string, tags: string, source: string, sourceUrl: ?string, entry: ?string, html: ?string, summary: string, hasPackage: bool, created: string} */
+    /** @return ?array{id: int, name: string, tags: string, source: string, sourceUrl: ?string, entry: ?string, html: ?string, hasPrevious: bool, summary: string, hasPackage: bool, created: string} */
     public function find(int $id): ?array
     {
         $row = $this->db->fetchRow('SELECT * FROM `AiUiTemplates` WHERE `id` = ?', [$id]);
@@ -37,6 +37,8 @@ final class TemplateRepository
             'sourceUrl' => $row['sourceUrl'] === null ? null : (string) $row['sourceUrl'],
             'entry' => $row['entry'] === null ? null : (string) $row['entry'],
             'html' => $row['html'] === null ? null : (string) $row['html'],
+            // Колоната е от миграция 017: преди нея върщането просто не е налично.
+            'hasPrevious' => ($row['previousHtml'] ?? null) !== null,
             'summary' => (string) $row['summary'],
             'hasPackage' => (bool) $row['hasPackage'],
             'created' => (string) $row['created'],
@@ -74,6 +76,33 @@ final class TemplateRepository
             'UPDATE `AiUiTemplates` SET `entry` = ?, `html` = ?, `summary` = ? WHERE `id` = ?',
             [$entry, $html, mb_substr($summary, 0, ReferenceFetcher::MAX_SUMMARY_CHARS), $id],
         );
+    }
+
+    /** Презаписва HTML-а на шаблона; предишният остава за едно връщане назад. */
+    public function replaceHtml(int $id, string $html): void
+    {
+        $row = $this->db->fetchRow('SELECT `html` FROM `AiUiTemplates` WHERE `id` = ?', [$id]);
+        if ($row === null || $row['html'] === null) {
+            throw new AiException('Шаблонът няма HTML.');
+        }
+
+        $this->db->execute('UPDATE `AiUiTemplates` SET `previousHtml` = ?, `html` = ? WHERE `id` = ?', [(string) $row['html'], $html, $id]);
+    }
+
+    /** Разменя текущия и предишния HTML (второ натискане връща промяната). */
+    public function swapPrevious(int $id): void
+    {
+        $row = $this->db->fetchRow('SELECT `html`, `previousHtml` FROM `AiUiTemplates` WHERE `id` = ?', [$id]);
+        if ($row === null || $row['previousHtml'] === null) {
+            throw new AiException('Няма предишна версия за връщане.');
+        }
+
+        $this->db->execute('UPDATE `AiUiTemplates` SET `html` = ?, `previousHtml` = ? WHERE `id` = ?', [(string) $row['previousHtml'], (string) $row['html'], $id]);
+    }
+
+    public function setSummary(int $id, string $summary): void
+    {
+        $this->db->execute('UPDATE `AiUiTemplates` SET `summary` = ? WHERE `id` = ?', [mb_substr($summary, 0, ReferenceFetcher::MAX_SUMMARY_CHARS), $id]);
     }
 
     public function delete(int $id): void

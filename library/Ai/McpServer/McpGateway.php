@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ai\McpServer;
 
+use Ai\Audit\AuditLog;
 use Ai\Limits\RateLimiter;
 
 /** HTTP политиката пред MCP сървъра: метод, Origin, токен, лимити и размер. Не знае нищо за Micro. */
@@ -22,6 +23,7 @@ final class McpGateway
         private \Closure $clock,
         private array $allowedOrigins = [],
         private int $maxBodyBytes = 65536,
+        private ?AuditLog $audit = null,
     ) {
     }
 
@@ -40,8 +42,15 @@ final class McpGateway
             // Ограничава налучкването и шума в базата; токените са дълги и случайни.
             $wait = $this->limiter->hit('mcpfail:' . $ip, self::MAX_FAILED_AUTH_PER_MINUTE, ($this->clock)());
 
+            if ($wait === null) {
+                $this->audit?->record('mcp.auth_failed', 'mcp', null, [], 'denied', ['type' => 'mcp', 'ip' => $ip]);
+            }
+
             return $wait !== null ? self::reply(429, ['Retry-After' => (string) $wait]) : self::reply(401, ['WWW-Authenticate' => 'Bearer']);
         }
+
+        // От тук нататък всички записи в одита за тази заявка са от името на токена.
+        $this->audit?->actingAs(['type' => 'mcp', 'id' => $token->id, 'name' => $token->name, 'ip' => $ip]);
 
         if (strlen($body) > $this->maxBodyBytes) {
             return self::reply(413);
